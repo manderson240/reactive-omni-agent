@@ -6,6 +6,7 @@ deterministic invariant checks, and coordinates Reactive Omni callbacks.
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from reactive_sentinel.attestation import ReactiveAttestationReceipt, ReactiveAttestationSigner
@@ -17,14 +18,26 @@ class ReactiveSentinelAgent:
 
     def __init__(
         self,
-        agent_id: str = "reactive-sentinel-node-01",
-        origin_chain_id: int = 84532,       # Base Sepolia
-        destination_chain_id: int = 84532,  # Base Sepolia
+        agent_id: str | None = None,
+        origin_chain_id: int | None = None,
+        destination_chain_id: int | None = None,
     ) -> None:
-        self.agent_id = agent_id
-        self.origin_chain_id = origin_chain_id
-        self.destination_chain_id = destination_chain_id
-        self.signer = ReactiveAttestationSigner(signer_id=agent_id)
+        self.agent_id = agent_id or os.getenv("SENTINEL_AGENT_ID", "reactive-sentinel-node-01")
+
+        # Dynamic variable resolution - sensitive chain IDs are loaded from environment / vault
+        if origin_chain_id is not None:
+            self.origin_chain_id = origin_chain_id
+        else:
+            env_val = os.getenv("ORIGIN_CHAIN_ID")
+            self.origin_chain_id = int(env_val) if env_val else 0
+
+        if destination_chain_id is not None:
+            self.destination_chain_id = destination_chain_id
+        else:
+            env_val = os.getenv("DESTINATION_CHAIN_ID")
+            self.destination_chain_id = int(env_val) if env_val else 0
+
+        self.signer = ReactiveAttestationSigner(signer_id=self.agent_id)
 
     def process_event(
         self,

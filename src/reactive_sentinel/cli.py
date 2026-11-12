@@ -15,6 +15,8 @@ from reactive_sentinel.agent import ReactiveSentinelAgent
 
 def run_demo(verbose: bool = True) -> int:
     """Run a deterministic Reactive Sentinel execution demonstration."""
+    import os
+
     t0 = time.perf_counter()
 
     if verbose:
@@ -23,17 +25,25 @@ def run_demo(verbose: bool = True) -> int:
         print("  DoraHacks Buildathon — Autonomous Cross-Chain Invariant Guardian")
         print("=" * 68)
 
+    origin_chain_id = int(os.getenv("ORIGIN_CHAIN_ID", "0"))
+    dest_chain_id = int(os.getenv("DESTINATION_CHAIN_ID", "0"))
+    reactive_chain_id = int(os.getenv("REACTIVE_CHAIN_ID", "0"))
+
     agent = ReactiveSentinelAgent(
-        agent_id="sentinel-lasna-01",
-        origin_chain_id=84532,      # Base Sepolia
-        destination_chain_id=84532, # Base Sepolia
+        agent_id=os.getenv("SENTINEL_AGENT_ID", "sentinel-node-01"),
+        origin_chain_id=origin_chain_id,
+        destination_chain_id=dest_chain_id,
     )
 
     if verbose:
+        origin_disp = str(origin_chain_id) if origin_chain_id else "${ORIGIN_CHAIN_ID}"
+        react_disp = str(reactive_chain_id) if reactive_chain_id else "${REACTIVE_CHAIN_ID}"
+        dest_disp = str(dest_chain_id) if dest_chain_id else "${DESTINATION_CHAIN_ID}"
+
         print(f"\n[1] Initialized Reactive Sentinel Agent: '{agent.agent_id}'")
-        print("    - Origin Network:      Base Sepolia (Chain ID: 84532)")
-        print("    - Reactive Network:    Reactive Lasna (Chain ID: 5318007)")
-        print("    - Destination Network: Base Sepolia (Chain ID: 84532)")
+        print(f"    - Origin Network:      Chain ID {origin_disp}")
+        print(f"    - Reactive Network:    Chain ID {react_disp}")
+        print(f"    - Destination Network: Chain ID {dest_disp}")
 
     # Case A: Critical Collateral Deficit Event
     critical_event_id = "evt-vault-101-margin-call"

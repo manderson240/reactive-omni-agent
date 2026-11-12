@@ -13,8 +13,8 @@ contract ReactiveRiskSentinelTest is Test {
 
     address public constant CALLBACK_RELAYER = address(0xCAFE);
     address public constant VAULT_OWNER = address(0xBEEF);
-    uint256 public constant ORIGIN_CHAIN_ID = 84532; // Base Sepolia
-    uint256 public constant DEST_CHAIN_ID = 84532;   // Base Sepolia
+    uint256 public constant ORIGIN_CHAIN_ID = 1001; // Mock test chain ID
+    uint256 public constant DEST_CHAIN_ID = 1001;   // Mock test chain ID
 
     event Callback(
         uint256 indexed chain_id,

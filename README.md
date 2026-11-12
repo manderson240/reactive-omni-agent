@@ -34,11 +34,32 @@ uv run pytest
 1. **Origin Detection (`OriginRiskEmitter.sol`)**:
    DeFi vaults or liquidity pools emit risk telemetry (e.g. `CollateralRatioAlert`).
 2. **Autonomous Reactive Execution (`ReactiveRiskSentinel.sol`)**:
-   Deployed on **Reactive Lasna** (Chain ID: `5318007`). Implements `IReactive.react()`, decodes event logs, evaluates safety invariants, and emits cross-chain `Callback` transactions without human or off-chain relayer intervention.
+   Deployed on **Reactive Network** (`${REACTIVE_CHAIN_ID}`). Implements `IReactive.react()`, decodes event logs, evaluates safety invariants, and emits cross-chain `Callback` transactions without human or off-chain relayer intervention.
 3. **Destination Mitigation (`DestinationLiquidatorGuard.sol`)**:
-   Deployed on Base Sepolia. Authenticates the Reactive VM origin via `AbstractCallback.rvmIdOnly()` and executes automated defensive rebalancing.
+   Deployed on Destination Chain (`${DESTINATION_CHAIN_ID}`). Authenticates the Reactive VM origin via `AbstractCallback.rvmIdOnly()` and executes automated defensive rebalancing.
 4. **Local AI Agent Guard (`reactive_sentinel`)**:
    Monitors event streams using local AMD Strix Halo NPU (`FastFlowLM` / `qwen3.5-4b-FLM`), runs zero-token AST verification, and generates HMAC-SHA256 attestation receipts.
+
+---
+
+## 🔒 Security & Dynamic Configuration
+
+Per production security requirements, sensitive network identifiers, chain IDs, RPC endpoints, and private keys **must never be committed to Git**. Instead, store them securely in **Google Password Manager** and inject them at runtime:
+
+```bash
+# Copy template and configure with credentials from Google Password Manager
+cp .env.example .env
+source .env
+```
+
+| Variable | Description |
+|---|---|
+| `PRIVATE_KEY` | Operator private key (stored in Password Manager) |
+| `ORIGIN_CHAIN_ID` | Origin chain identifier (e.g. Base Sepolia) |
+| `DESTINATION_CHAIN_ID` | Destination chain identifier |
+| `REACTIVE_CHAIN_ID` | Reactive network identifier (e.g. Reactive Lasna) |
+| `BASE_SEPOLIA_RPC_URL` | Origin RPC endpoint |
+| `REACTIVE_LASNA_RPC_URL` | Reactive network RPC endpoint |
 
 ---
 

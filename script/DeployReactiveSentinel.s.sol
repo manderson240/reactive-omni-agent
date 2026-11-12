@@ -9,8 +9,8 @@ contract DeployReactiveSentinel is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address originContract = vm.envAddress("ORIGIN_CONTRACT");
         address destinationContract = vm.envAddress("DESTINATION_CONTRACT");
-        uint256 originChainId = vm.envOr("ORIGIN_CHAIN_ID", uint256(84532)); // Base Sepolia
-        uint256 destinationChainId = vm.envOr("DESTINATION_CHAIN_ID", uint256(84532)); // Base Sepolia
+        uint256 originChainId = vm.envUint("ORIGIN_CHAIN_ID");
+        uint256 destinationChainId = vm.envUint("DESTINATION_CHAIN_ID");
 
         vm.startBroadcast(deployerPrivateKey);
 

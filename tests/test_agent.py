@@ -32,14 +32,22 @@ def test_attestation_signing_and_verification() -> None:
     signer = ReactiveAttestationSigner(signer_id="test-signer-01")
     receipt = signer.sign(
         event_id="evt-test-1",
-        origin_chain_id=84532,
-        destination_chain_id=84532,
+        origin_chain_id=1001,
+        destination_chain_id=1001,
         executed=True,
     )
     assert receipt.event_id == "evt-test-1"
     assert receipt.executed is True
     assert len(receipt.signature) == 64
     assert signer.verify(receipt) is True
+
+
+def test_agent_dynamic_environment_chain_ids(monkeypatch) -> None:
+    monkeypatch.setenv("ORIGIN_CHAIN_ID", "42001")
+    monkeypatch.setenv("DESTINATION_CHAIN_ID", "42002")
+    agent = ReactiveSentinelAgent(agent_id="test-env-agent")
+    assert agent.origin_chain_id == 42001
+    assert agent.destination_chain_id == 42002
 
 
 def test_agent_end_to_end_processing() -> None:

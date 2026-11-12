@@ -4,6 +4,7 @@ out = "out"
 libs = ["lib"]
 
 [rpc_endpoints]
-base_sepolia = "https://sepolia.base.org"
-reactive_lasna = "https://lasna-rpc.rnk.dev"
+base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
+reactive_lasna = "${REACTIVE_LASNA_RPC_URL}"
+
 
