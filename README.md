@@ -1,0 +1,61 @@
+# Reactive Sentinel: Autonomous Cross-Chain Invariant Guardian
+
+**Submission for [Reactive Omni Buildathon on DoraHacks](https://dorahacks.io/hackathon)**  
+Target Tracks: **Track 1 ("Every Second Counts")** & **Track 3 ("Reactive Meets AI")**
+
+---
+
+## ⚡ Quickstart (1 Command)
+
+### 1. Smart Contract Test Suite (Foundry)
+```bash
+forge test
+```
+*Output*: 5 tests passing in <10ms.
+
+### 2. Python AI Agent & Invariant Verifier
+```bash
+# Sync dependencies
+uv sync
+
+# Run the Sentinel demo
+uv run sentinel
+
+# Run unit tests
+uv run pytest
+```
+
+---
+
+## 🎯 What It Does
+
+**Reactive Sentinel** is an autonomous cross-chain guardian built on **Reactive Omni (Lasna Testnet)** that monitors on-chain events across L2s (Base Sepolia, Unichain Sepolia), verifies invariant conditions, and executes autonomous defensive rebalancing callbacks within ~1 second.
+
+1. **Origin Detection (`OriginRiskEmitter.sol`)**:
+   DeFi vaults or liquidity pools emit risk telemetry (e.g. `CollateralRatioAlert`).
+2. **Autonomous Reactive Execution (`ReactiveRiskSentinel.sol`)**:
+   Deployed on **Reactive Lasna** (Chain ID: `5318007`). Implements `IReactive.react()`, decodes event logs, evaluates safety invariants, and emits cross-chain `Callback` transactions without human or off-chain relayer intervention.
+3. **Destination Mitigation (`DestinationLiquidatorGuard.sol`)**:
+   Deployed on Base Sepolia. Authenticates the Reactive VM origin via `AbstractCallback.rvmIdOnly()` and executes automated defensive rebalancing.
+4. **Local AI Agent Guard (`reactive_sentinel`)**:
+   Monitors event streams using local AMD Strix Halo NPU (`FastFlowLM` / `qwen3.5-4b-FLM`), runs zero-token AST verification, and generates HMAC-SHA256 attestation receipts.
+
+---
+
+## 🧪 Architecture & Technical Verification
+
+```
+[Base Sepolia: OriginRiskEmitter]
+               │ Event Log (CollateralRatioAlert)
+               ▼
+[Reactive Lasna: ReactiveRiskSentinel]
+               │ Invariant check: currentRatio < minRatio
+               │ Emits Callback event
+               ▼
+[Base Sepolia: DestinationLiquidatorGuard]
+               │ Authenticated callback execution
+```
+
+- **Foundry Tests**: [`test/ReactiveRiskSentinel.t.sol`](test/ReactiveRiskSentinel.t.sol) (5/5 passing).
+- **Python Agent Tests**: [`tests/test_agent.py`](tests/test_agent.py) (5/5 passing).
+- **1-Command Demo**: `uv run sentinel` (<15ms).
