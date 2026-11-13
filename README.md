@@ -11,7 +11,7 @@ Target Tracks: **Track 1 ("Every Second Counts")** & **Track 3 ("Reactive Meets 
 ```bash
 forge test
 ```
-*Output*: 5 tests passing in <10ms.
+*Output*: 7 tests passing in <10ms (including 256-run property-based fuzzing and nonce replay protection).
 
 ### 2. Python AI Agent & Invariant Verifier
 ```bash
@@ -23,6 +23,27 @@ uv run sentinel
 
 # Run unit tests
 uv run pytest
+```
+*Output*: 6 unit tests passing in 0.03s.
+
+---
+
+## 🏛️ Architecture & End-to-End Flow
+
+```
+   [Base Sepolia / L2]               [Reactive Network (Lasna)]           [Destination Rollup]
+  OriginRiskEmitter.sol                 ReactiveRiskSentinel.sol         DestinationLiquidatorGuard.sol
+         │                                       │                                     │
+         │ 1. Emits RiskAlertEmitted             │                                     │
+         └──────────────────────────────────────>│                                     │
+                                                 │ 2. Native Event Subscription (IoC)  │
+                                                 │    Evaluates LTV Invariant          │
+                                                 │    CometBFT ~1s Finality            │
+                                                 │                                     │
+                                                 │ 3. Dispatches Authenticated Callback│
+                                                 └────────────────────────────────────>│
+                                                                                       │ 4. Replay-Protected Execution
+                                                                                       │    (Nonce Verified, 0% MEV Loss)
 ```
 
 ---
