@@ -14,6 +14,7 @@ contract DestinationLiquidatorGuard is AbstractCallback {
     );
 
     uint256 public totalRebalances;
+    mapping(bytes32 => bool) public processedActionIds;
 
     constructor(address _callbackSender) AbstractCallback(_callbackSender) {}
 
@@ -28,6 +29,28 @@ contract DestinationLiquidatorGuard is AbstractCallback {
         address owner,
         uint256 actionCode
     ) external rvmIdOnly(_rvmId) {
+        totalRebalances++;
+        emit RebalanceExecuted(vaultId, owner, actionCode, block.timestamp);
+    }
+
+    /// @notice Callback executed with cryptographic nonce replay protection.
+    /// @param _rvmId The reactive contract instance address that initiated this callback.
+    /// @param vaultId The target vault identifier.
+    /// @param owner The target vault owner.
+    /// @param actionCode Defensive action code executed.
+    /// @param nonce Unique sequence nonce preventing replay attacks.
+    function executeDefensiveActionWithNonce(
+        address _rvmId,
+        uint256 vaultId,
+        address owner,
+        uint256 actionCode,
+        uint256 nonce
+    ) external rvmIdOnly(_rvmId) {
+        bytes32 actionId = keccak256(
+            abi.encodePacked(_rvmId, vaultId, owner, actionCode, nonce)
+        );
+        require(!processedActionIds[actionId], "Action already executed");
+        processedActionIds[actionId] = true;
         totalRebalances++;
         emit RebalanceExecuted(vaultId, owner, actionCode, block.timestamp);
     }

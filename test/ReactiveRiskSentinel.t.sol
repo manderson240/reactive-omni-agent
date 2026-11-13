@@ -159,4 +159,52 @@ contract ReactiveRiskSentinelTest is Test {
 
         assertEq(guard.totalRebalances(), 0);
     }
+
+    function test_destination_guard_replay_protection_blocks_duplicate_nonce() public {
+        uint256 vaultId = 101;
+        uint256 actionCode = 1;
+        uint256 nonce = 42;
+
+        vm.startPrank(CALLBACK_RELAYER);
+        // First execution succeeds
+        guard.executeDefensiveActionWithNonce(CALLBACK_RELAYER, vaultId, VAULT_OWNER, actionCode, nonce);
+        assertEq(guard.totalRebalances(), 1);
+
+        // Replay attempt with same nonce must revert
+        vm.expectRevert("Action already executed");
+        guard.executeDefensiveActionWithNonce(CALLBACK_RELAYER, vaultId, VAULT_OWNER, actionCode, nonce);
+        vm.stopPrank();
+
+        assertEq(guard.totalRebalances(), 1);
+    }
+
+    function test_fuzz_risk_ratio_evaluation(uint256 currentRatio, uint256 minRatio) public {
+        // Bound inputs to realistic 18-decimal or basis point ranges
+        currentRatio = bound(currentRatio, 1, 100000);
+        minRatio = bound(minRatio, 1000, 50000);
+
+        bytes memory data = abi.encode(currentRatio, minRatio, uint256(1));
+        IReactive.LogRecord memory record = IReactive.LogRecord({
+            chain_id: ORIGIN_CHAIN_ID,
+            _contract: address(originEmitter),
+            topic_0: uint256(sentinel.ALERT_TOPIC_0()),
+            topic_1: 1,
+            topic_2: uint256(uint160(VAULT_OWNER)),
+            topic_3: 0,
+            data: data,
+            block_number: 1000,
+            op_code: 0,
+            block_hash: 0,
+            tx_hash: 0,
+            log_index: 0
+        });
+
+        sentinel.react(record);
+
+        if (currentRatio < minRatio) {
+            assertEq(sentinel.callbacksTriggered(), 1);
+        } else {
+            assertEq(sentinel.callbacksTriggered(), 0);
+        }
+    }
 }
