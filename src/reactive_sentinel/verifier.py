@@ -7,7 +7,7 @@ Runs in <0.1ms with 0 LLM tokens.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 # Permitted defensive action codes
@@ -20,7 +20,7 @@ class InvariantCheckResult:
 
     valid: bool
     requires_callback: bool
-    violations: tuple[str, ...] = field(default_factory=tuple)
+    violations: tuple[str, ...] = ()
     latency_ms: float = 0.0
 
 
