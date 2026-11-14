@@ -46,20 +46,116 @@ uv run pytest
 
 ## 🏛️ Architecture & End-to-End Flow
 
+```mermaid
+flowchart TD
+    subgraph OriginNetwork["Origin Chain (Base Sepolia / L2)"]
+        DeFiVault["DeFi Lending Protocol / Liquidity Pool"]
+        RiskEmitter["OriginRiskEmitter.sol<br/><i>Emits RiskAlertEmitted Event</i>"]
+        CollateralState["Vault Collateral Ratio & Health Factor"]
+    end
+
+    subgraph ReactiveNetwork["Reactive Network (Lasna / Kopli Execution Layer)"]
+        KopliVM["Reactive Virtual Machine (RVM)"]
+        RiskSentinel["ReactiveRiskSentinel.sol<br/><i>Implements IReactive.react()</i>"]
+        EventSubscription["Native Event Subscription (IoC Inversion of Control)"]
+        InvariantEngine["Threshold Invariant Evaluator (LTV > 8500 bps)"]
+    end
+
+    subgraph DestinationNetwork["Destination Chain (Rollup / Liquidator Engine)"]
+        DestinationGuard["DestinationLiquidatorGuard.sol<br/><i>Implements AbstractCallback</i>"]
+        AuthFilter["rvmIdOnly / Authenticated Origin Filter"]
+        LiquidationVault["Defensive Rebalancing & Liquidation Vault"]
+    end
+
+    subgraph LocalAI["Edge Guardian (AMD Strix Halo NPU)"]
+        FastFlowLM["Local FastFlowLM / qwen3.5-4b-FLM"]
+        ASTGuard["Zero-Token Telemetry AST Verifier"]
+    end
+
+    CollateralState -->|"Ratio Drops Below Threshold"| RiskEmitter
+    RiskEmitter -->|"1. Emits Log: RiskAlertEmitted"| EventSubscription
+    
+    EventSubscription --> KopliVM
+    KopliVM --> RiskSentinel
+    RiskSentinel --> InvariantEngine
+
+    InvariantEngine -->|"2. Condition Met: Dispatch Cross-Chain Callback"| DestinationGuard
+    
+    DestinationGuard --> AuthFilter
+    AuthFilter -->|"Authorized Reactive VM Origin"| LiquidationVault
+    LiquidationVault -->|"3. Execute Automated Rebalance / Liquidation"| DestinationNetwork
+
+    EventSubscription -.->|"Stream Telemetry"| FastFlowLM
+    FastFlowLM --> ASTGuard
+
+    classDef origin fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4;
+    classDef reactive fill:#181825,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4;
+    classDef destination fill:#313244,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4;
+    classDef edge fill:#313244,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4;
+
+    class OriginNetwork,DeFiVault,RiskEmitter,CollateralState origin;
+    class ReactiveNetwork,KopliVM,RiskSentinel,EventSubscription,InvariantEngine reactive;
+    class DestinationNetwork,DestinationGuard,AuthFilter,LiquidationVault destination;
+    class LocalAI,FastFlowLM,ASTGuard edge;
 ```
-   [Base Sepolia / L2]               [Reactive Network (Lasna)]           [Destination Rollup]
-  OriginRiskEmitter.sol                 ReactiveRiskSentinel.sol         DestinationLiquidatorGuard.sol
-         │                                       │                                     │
-         │ 1. Emits RiskAlertEmitted             │                                     │
-         └──────────────────────────────────────>│                                     │
-                                                 │ 2. Native Event Subscription (IoC)  │
-                                                 │    Evaluates LTV Invariant          │
-                                                 │    CometBFT ~1s Finality            │
-                                                 │                                     │
-                                                 │ 3. Dispatches Authenticated Callback│
-                                                 └────────────────────────────────────>│
-                                                                                       │ 4. Replay-Protected Execution
-                                                                                       │    (Nonce Verified, 0% MEV Loss)
+
+### Autonomous Reactive Mitigation Sequence
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Borrower as Borrower / Market Volatility
+    participant Origin as OriginRiskEmitter.sol (Base Sepolia)
+    participant RVM as Reactive VM (Kopli / Lasna)
+    participant Sentinel as ReactiveRiskSentinel.sol
+    participant Dest as DestinationLiquidatorGuard.sol (Rollup)
+    actor Liquidator as Defensive Liquidation Engine
+
+    Borrower->>Origin: Market price shock drops collateral ratio
+    activate Origin
+    Origin->>Origin: Assert Collateral Ratio < 8500 bps
+    Origin-->>RVM: emit RiskAlertEmitted(user, debt, collateral, timestamp)
+    deactivate Origin
+
+    activate RVM
+    RVM->>Sentinel: react(chainId, emitter, topics, data)
+    deactivate RVM
+    activate Sentinel
+
+    Sentinel->>Sentinel: Decode event log & evaluate risk threshold
+    Sentinel->>Sentinel: Verify cross-chain nonce & payload integrity
+    Sentinel-->>Dest: emit Callback(destChainId, destGuard, gasLimit, payload)
+    deactivate Sentinel
+
+    activate Dest
+    Dest->>Dest: Authenticate sender via rvmIdOnly()
+    Dest->>Dest: Replay protection: assert nonce not seen
+    Dest->>Liquidator: executeDefensiveRebalance(user, debtToCover)
+    activate Liquidator
+    Liquidator-->>Dest: Rebalance completed in ~1s (0% MEV slippage)
+    deactivate Liquidator
+    Dest-->>Borrower: Position safeguarded against bad debt
+    deactivate Dest
+```
+
+### Cross-Chain Hysteresis State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Healthy_State: Collateral Ratio > Safe Threshold
+    Healthy_State --> Risk_Threshold_Exceeded: Market Shock (Ratio < 85%)
+    
+    Risk_Threshold_Exceeded --> Event_Emitted: OriginRiskEmitter emits alert
+    Event_Emitted --> Reactive_VM_Processing: Inversion of Control Ingestion (~1s)
+    
+    Reactive_VM_Processing --> Invariant_Verified: Debt & Collateral Validated
+    Invariant_Verified --> Callback_Dispatched: Cross-Chain Callback Emitted
+    
+    Callback_Dispatched --> Defensive_Rebalanced: Destination Liquidator Executes
+    Defensive_Rebalanced --> Hysteresis_Cooldown: Position Stabilized
+    
+    Hysteresis_Cooldown --> Healthy_State: Ratio Restored Above Safe Threshold
+    Hysteresis_Cooldown --> [*]
 ```
 
 ---
