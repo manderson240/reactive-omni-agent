@@ -7,8 +7,8 @@ Features:
 - Exact word-for-word voiceover synchronization with on-screen slide text.
 - Full viewport visibility: zero text clipping or bottom cutoff (87px decoration compensation + cropping).
 - Reactive Network cross-chain architecture visualization.
-- Complete Foundry (5/5) & Pytest (6/6) terminal output showcase with actual test names.
-- Edge-TTS neural voiceover with natural audio pacing and pauses.
+- Complete Foundry (7/7) & Pytest (6/6) terminal output showcase with actual test names.
+- Local Kyutai Pocket-TTS natural neural voiceover on CPU with int8 quantization (zero OOM risk, offline).
 - Visually lossless H.264 encoding (CRF 16).
 """
 
@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -23,7 +25,7 @@ import time
 from pathlib import Path
 from PIL import Image
 
-VOICE = "en-US-ChristopherNeural"
+VOICE = "alba"
 WIDTH = 2560
 HEIGHT = 1440
 CHROME_CAPTURE_HEIGHT = 1527  # Compensates for Chrome Linux headless 87px decoration subtraction
@@ -36,7 +38,7 @@ SCENES = [
         "narration": (
             "Reactive Omni Sentinel. Autonomous cross-chain DeFi risk and liquidation guardian powered by Reactive Network, "
             "built for the DoraHacks Reactive Omni Buildathon in the Autonomous Cross-Chain Track. "
-            "One point three millisecond Foundry test execution speed across five out of five unit tests. "
+            "Sub-seven millisecond Foundry test execution speed across seven out of seven unit tests including property fuzzing and replay defense. "
             "I-Reactive execution-layer event listening on Reactive Lasna testnet without centralized oracles. "
             "Zero secrets architecture with one hundred percent dynamic chain IDs and Google Password Manager security protocol. "
             "And KISS Grade A-plus simplicity with twenty-four clean files, two Python dependencies, and one-command runs. "
@@ -53,8 +55,8 @@ SCENES = [
             <div class="grid-4" style="margin-top: 24px; margin-bottom: 24px;">
                 <div class="card" style="text-align: center; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08);">
                     <div class="card-icon">⚡</div>
-                    <h3 style="font-size: 32px; color: #38bdf8; margin-bottom: 8px;">1.3 ms</h3>
-                    <p style="font-size: 19px; color: #cbd5e1;">Foundry test execution speed across 5/5 unit tests</p>
+                    <h3 style="font-size: 32px; color: #38bdf8; margin-bottom: 8px;">6.4 ms</h3>
+                    <p style="font-size: 19px; color: #cbd5e1;">Foundry test execution speed across 7/7 unit &amp; fuzz tests</p>
                 </div>
                 <div class="card" style="text-align: center; border-color: rgba(34, 197, 94, 0.4); background: rgba(34, 197, 94, 0.08);">
                     <div class="card-icon">🛡️</div>
@@ -197,8 +199,9 @@ SCENES = [
         "badge": "Reactive Omni Buildathon • Verification & Quality",
         "narration": (
             "Dual-harness quality verification with one hundred percent pass rate across smart contracts and off-chain sentinel runtime. "
-            "On the left, our Foundry Solidity test suite passes five out of five unit tests in one point six milliseconds: "
-            "testing authorized destination guard callbacks, unauthorized rejection, safe ratio filtering, unrelated topic filtering, "
+            "On the left, our Foundry Solidity test suite passes seven out of seven unit tests in under seven milliseconds: "
+            "testing authorized destination guard callbacks, unauthorized rejection, replay protection blocking duplicate nonces, "
+            "property fuzz testing over two hundred fifty-six runs, safe ratio filtering, unrelated topic filtering, "
             "and reactive callback triggers when ratios breach thresholds. "
             "On the right, our Python sentinel agent test suite passes six out of six unit tests in point zero three seconds: "
             "validating threshold triggers, safe ratio ignore logic, invalid action code rejection, HMAC attestation signing, "
@@ -213,16 +216,18 @@ SCENES = [
             </div>
             <div class="grid-2" style="margin-top: 24px;">
                 <div class="card" style="background: #020617; border-color: rgba(56, 189, 248, 0.3); padding: 24px;">
-                    <h3 style="color: #38bdf8; font-size: 22px; margin-bottom: 12px;">Foundry Solidity Test Suite (5/5 Passing)</h3>
-                    <pre style="background: #0f172a; padding: 18px; border-radius: 8px; font-family: monospace; font-size: 16px; color: #e2e8f0; line-height: 1.45;">
-<span style="color: #22c55e;">[PASS]</span> test_destination_guard_executes_callback_from_authorized_rvm() (gas: 61523)
-<span style="color: #22c55e;">[PASS]</span> test_destination_guard_rejects_unauthorized_rvm() (gas: 37818)
+                    <h3 style="color: #38bdf8; font-size: 22px; margin-bottom: 12px;">Foundry Solidity Test Suite (7/7 Passing)</h3>
+                    <pre style="background: #0f172a; padding: 18px; border-radius: 8px; font-family: monospace; font-size: 15px; color: #e2e8f0; line-height: 1.4;">
+<span style="color: #22c55e;">[PASS]</span> test_destination_guard_executes_callback_from_authorized_rvm() (gas: 61611)
+<span style="color: #22c55e;">[PASS]</span> test_destination_guard_rejects_unauthorized_rvm() (gas: 37884)
+<span style="color: #22c55e;">[PASS]</span> test_destination_guard_replay_protection_blocks_duplicate_nonce() (gas: 126693)
+<span style="color: #22c55e;">[PASS]</span> test_fuzz_risk_ratio_evaluation(uint256,uint256) (runs: 256, μ: 81596)
 <span style="color: #22c55e;">[PASS]</span> test_react_ignores_safe_ratio() (gas: 75894)
 <span style="color: #22c55e;">[PASS]</span> test_react_ignores_unrelated_event_topics() (gas: 47633)
 <span style="color: #22c55e;">[PASS]</span> test_react_triggers_callback_when_ratio_under_threshold() (gas: 118765)
 
-<span style="color: #38bdf8;">Suite result:</span> ok. 5 passed; 0 failed; 0 skipped
-<span style="color: #22c55e;">Execution time: finished in 4.52ms (1.64ms CPU time)</span>
+<span style="color: #38bdf8;">Suite result:</span> ok. 7 passed; 0 failed; 0 skipped
+<span style="color: #22c55e;">Execution time: finished in 6.44ms (5.55ms CPU time)</span>
                     </pre>
                 </div>
                 <div class="card" style="background: #020617; border-color: rgba(34, 197, 94, 0.3); padding: 24px;">
@@ -463,22 +468,67 @@ def run_command(cmd: list[str], timeout: float = 120.0) -> subprocess.CompletedP
 
 
 def generate_voiceover(text: str, output_path: Path, max_retries: int = 3) -> float:
+    """Synthesize voiceover using local Kyutai Pocket-TTS foundation model on CPU.
+
+    Splits text into natural conversational sentence chunks, generates 24kHz audio via
+    pocket-tts in int8 quantization (zero GPU VRAM usage, zero OOM risk), and concatenates
+    with ffmpeg.
+    """
+    pocket_bin = shutil.which("pocket-tts") or "/home/mike-anderson/.local/bin/pocket-tts"
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s.strip()]
+    if not sentences:
+        sentences = [text.strip()]
+
     for attempt in range(1, max_retries + 1):
+        if output_path.exists():
+            output_path.unlink()
         try:
-            tts_cmd = [
-                "uv",
-                "run",
-                "--with",
-                "edge-tts",
-                "edge-tts",
-                "--voice",
-                VOICE,
-                "--text",
-                text,
-                "--write-media",
-                str(output_path),
-            ]
-            run_command(tts_cmd)
+            with tempfile.TemporaryDirectory() as td:
+                wav_files = []
+                for idx, sentence in enumerate(sentences):
+                    part_wav = Path(td) / f"part_{idx}.wav"
+                    cmd = [
+                        pocket_bin,
+                        "generate",
+                        "--text",
+                        sentence,
+                        "--device",
+                        "cpu",
+                        "--quantize",
+                        "--max-tokens",
+                        "150",
+                        "--output-path",
+                        str(part_wav),
+                        "-q",
+                    ]
+                    subprocess.run(cmd, capture_output=True, text=True, check=True)
+                    if part_wav.exists() and part_wav.stat().st_size > 1000:
+                        wav_files.append(part_wav)
+
+                if not wav_files:
+                    raise RuntimeError("No audio produced by pocket-tts")
+
+                concat_list = Path(td) / "list.txt"
+                with open(concat_list, "w", encoding="utf-8") as f:
+                    for w in wav_files:
+                        f.write(f"file '{w}'\n")
+
+                ffmpeg_cmd = [
+                    "ffmpeg",
+                    "-y",
+                    "-f",
+                    "concat",
+                    "-safe",
+                    "0",
+                    "-i",
+                    str(concat_list),
+                    "-c:a",
+                    "libmp3lame",
+                    "-b:a",
+                    "192k",
+                    str(output_path),
+                ]
+                run_command(ffmpeg_cmd)
 
             # Measure audio duration
             ffprobe_cmd = [
@@ -493,11 +543,11 @@ def generate_voiceover(text: str, output_path: Path, max_retries: int = 3) -> fl
             ]
             proc = run_command(ffprobe_cmd)
             duration = float(proc.stdout.strip())
-            if duration > 3.0:
+            if duration > 2.0:
                 return duration
         except Exception as e:
             print(f"   ⚠️ TTS attempt {attempt} failed: {e}")
-        time.sleep(1.5)
+        time.sleep(1.0)
     raise RuntimeError(f"Failed to synthesize voiceover after {max_retries} attempts.")
 
 
