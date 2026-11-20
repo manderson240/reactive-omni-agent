@@ -1,8 +1,8 @@
 # DoraHacks BUIDL Submission Guide: Reactive Omni Sentinel
 
 **Hackathon**: [Reactive Omni Buildathon (DoraHacks)](https://dorahacks.io/hackathon/reactive-omni-buildathon/detail)  
-**Primary Track**: Track 1 — *Every Second Counts* ($2,000 1st place / $250 runner-up: Time-sensitive DeFi on Base Sepolia)  
-**Secondary Track**: Track 3 — *Reactive Meets AI* ($1,000 1st place: Neural networks & agentic sentinels with reactive contracts)  
+**Primary Track**: Track 1: *Every Second Counts* ($2,000 1st place / $250 runner-up: Time-sensitive DeFi on Base Sepolia)  
+**Secondary Track**: Track 3: *Reactive Meets AI* ($1,000 1st place: Neural networks & agentic sentinels with reactive contracts)  
 **Deadline**: December 5, 2026, 23:59 UTC  
 **Repository**: `https://github.com/manderson240/reactive-omni-agent`  
 
@@ -184,11 +184,3 @@ uv run pytest         # 6/6 unit tests passed in 0.03 s!
 uv run sentinel       # Autonomous risk evaluation & receipt signing
 ```
 ```
-
-
-### Formal Verification & Invariant Proofs
-- **Auditing Harness**: Google Research / Stellar Colosseum Many-Agent Harness (arXiv:2609.15983).
-- **Systemic Coherence ($C_{systemic}$)**: `0.9586` (Pass threshold: $\ge 0.80$).
-- **Formally Verified Lemmas**: `4 / 4` protocol invariants mathematically proven.
-- **Adversarial Resilience**: Passed 100% of boundary condition, zero-division, and reentrancy falsification loops.
-- **Proof Certificate**: Comprehensive mathematical certificate published in [STELLAR_INVARIANT_PROOF.md](STELLAR_INVARIANT_PROOF.md).

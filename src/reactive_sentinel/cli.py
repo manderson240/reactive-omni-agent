@@ -22,7 +22,7 @@ def run_demo(verbose: bool = True) -> int:
     if verbose:
         print("=" * 68)
         print("  REACTIVE SENTINEL (Reactive Omni Network)")
-        print("  DoraHacks Buildathon — Autonomous Cross-Chain Invariant Guardian")
+        print("  DoraHacks Buildathon: Autonomous Cross-Chain Invariant Guardian")
         print("=" * 68)
 
     origin_chain_id = int(os.getenv("ORIGIN_CHAIN_ID", "0"))
@@ -61,10 +61,10 @@ def run_demo(verbose: bool = True) -> int:
     )
 
     if verbose:
-        print(f"    ✓ Invariant Check:   PASSED (valid event structure in {check_crit.latency_ms:.2f}ms)")
-        print(f"    ✓ Action Triggered:  CALLBACK REQUIRED -> executeDefensiveAction(vault=101, action=1)")
-        print(f"    ✓ Attestation Sig:   {receipt_crit.signature[:24]}...")
-        print(f"    ✓ Reactive Status:   EXECUTED ON LASNA")
+        print(f"    [OK] Invariant Check:   PASSED (valid event structure in {check_crit.latency_ms:.2f}ms)")
+        print(f"    [OK] Action Triggered:  CALLBACK REQUIRED -> executeDefensiveAction(vault=101, action=1)")
+        print(f"    [OK] Attestation Sig:   {receipt_crit.signature[:24]}...")
+        print(f"    [OK] Reactive Status:   EXECUTED ON LASNA")
 
     # Case B: Safe Vault Event (No Callback)
     safe_event_id = "evt-vault-102-healthy"
@@ -82,16 +82,16 @@ def run_demo(verbose: bool = True) -> int:
     )
 
     if verbose:
-        print(f"    ✓ Invariant Check:   PASSED (valid event structure in {check_safe.latency_ms:.2f}ms)")
-        print(f"    ✓ Action Triggered:  NO CALLBACK (compute and gas conserved)")
-        print(f"    ✓ Attestation Sig:   {receipt_safe.signature[:24]}...")
-        print(f"    ✓ Reactive Status:   PASSED (IDLE)")
+        print(f"    [OK] Invariant Check:   PASSED (valid event structure in {check_safe.latency_ms:.2f}ms)")
+        print(f"    [OK] Action Triggered:  NO CALLBACK (compute and gas conserved)")
+        print(f"    [OK] Attestation Sig:   {receipt_safe.signature[:24]}...")
+        print(f"    [OK] Reactive Status:   PASSED (IDLE)")
 
     total_ms = (time.perf_counter() - t0) * 1000.0
 
     if verbose:
         print("\n" + "=" * 68)
-        print(f"  SENTINEL COMPLETE — ALL INVARIANTS VERIFIED in {total_ms:.2f}ms")
+        print(f"  SENTINEL COMPLETE: ALL INVARIANTS VERIFIED in {total_ms:.2f}ms")
         print("  Status: READY FOR REACTIVE LASNA TESTNET")
         print("=" * 68 + "\n")
 

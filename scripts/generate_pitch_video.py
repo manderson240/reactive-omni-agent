@@ -126,7 +126,7 @@ SCENES = [
                 <div class="card danger">
                     <h3>❌ Legacy Cross-Chain Pollers &amp; Bridges</h3>
                     <ul>
-                        <li><strong>Bridge Lag:</strong> 5–20 minute confirmation exposes vault to MEV liquidators</li>
+                        <li><strong>Bridge Lag:</strong> 5 to 20 minute confirmation exposes vault to MEV liquidators</li>
                         <li><strong>Centralized Relayers:</strong> Single-server RPC cron loops go down or drop events</li>
                         <li><strong>Callback Spoofing:</strong> Destination executes malicious external action codes</li>
                         <li><strong>Hardcoded Keys:</strong> Secrets committed in scripts expose private wallets</li>
@@ -156,12 +156,12 @@ SCENES = [
             <div class="header">
                 <span class="badge">Code Walkthrough • Reactive Network Contract</span>
                 <h1>Core Smart Contract: ReactiveRiskSentinel.sol</h1>
-                <p class="subtitle">Complete verbatim ReactVM contract from <code>src/ReactiveRiskSentinel.sol</code> (lines 7–91, zero ellipses).</p>
+                <p class="subtitle">Complete verbatim ReactVM contract from <code>src/ReactiveRiskSentinel.sol</code> (lines 7 to 91, zero ellipses).</p>
             </div>
             <div class="code-grid-2">
                 <div class="code-box">
                     <div class="linux-bar">
-                        <span class="linux-tab">src/ReactiveRiskSentinel.sol (Lines 7–50)</span>
+                        <span class="linux-tab">src/ReactiveRiskSentinel.sol (Lines 7 to 50)</span>
                         <div class="linux-controls"><span>_</span><span>□</span><span>✕</span></div>
                     </div>
                     <pre style="font-size:14.2px;line-height:1.30;">{REACTIVE_CONTRACT_PART1}</pre>
@@ -172,7 +172,7 @@ SCENES = [
                 </div>
                 <div class="code-box">
                     <div class="linux-bar">
-                        <span class="linux-tab">src/ReactiveRiskSentinel.sol (Lines 50–91)</span>
+                        <span class="linux-tab">src/ReactiveRiskSentinel.sol (Lines 50 to 91)</span>
                         <div class="linux-controls"><span>_</span><span>□</span><span>✕</span></div>
                     </div>
                     <pre style="font-size:14.2px;line-height:1.30;">{REACTIVE_CONTRACT_PART2}</pre>
@@ -201,7 +201,7 @@ SCENES = [
             <div class="code-grid-2">
                 <div class="code-box">
                     <div class="linux-bar">
-                        <span class="linux-tab">src/reactive_sentinel/verifier.py (Lines 13–83)</span>
+                        <span class="linux-tab">src/reactive_sentinel/verifier.py (Lines 13 to 83)</span>
                         <div class="linux-controls"><span>_</span><span>□</span><span>✕</span></div>
                     </div>
                     <pre style="font-size:13.0px;line-height:1.23;">{VERIFIER_PY_CODE}</pre>
@@ -212,7 +212,7 @@ SCENES = [
                 </div>
                 <div class="code-box">
                     <div class="linux-bar">
-                        <span class="linux-tab">src/reactive_sentinel/agent.py (Lines 16–67)</span>
+                        <span class="linux-tab">src/reactive_sentinel/agent.py (Lines 16 to 67)</span>
                         <div class="linux-controls"><span>_</span><span>□</span><span>✕</span></div>
                     </div>
                     <pre style="font-size:13.8px;line-height:1.27;">{AGENT_PY_CODE}</pre>
@@ -242,7 +242,7 @@ SCENES = [
             <div class="code-grid-2">
                 <div class="terminal-mini">
                     <div class="linux-bar">
-                        <span class="linux-tab">reactive-lasna — Collateral Ratio Drop Defense</span>
+                        <span class="linux-tab">reactive-lasna: Collateral Ratio Drop Defense</span>
                         <div class="linux-controls"><span>_</span><span>□</span><span>✕</span></div>
                     </div>
                     <div class="term-lines" style="font-size:17px;">
@@ -258,7 +258,7 @@ SCENES = [
                 </div>
                 <div class="terminal-mini danger-border">
                     <div class="linux-bar danger-header">
-                        <span class="linux-tab-danger">reactive-lasna — Invalid Action &amp; Spoofed Callback</span>
+                        <span class="linux-tab-danger">reactive-lasna: Invalid Action &amp; Spoofed Callback</span>
                         <div class="linux-controls"><span>_</span><span>□</span><span>✕</span></div>
                     </div>
                     <div class="term-lines" style="font-size:17px;">
