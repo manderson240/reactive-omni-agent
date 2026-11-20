@@ -11,7 +11,8 @@ contract ReactiveRiskSentinelTest is Test {
     ReactiveRiskSentinel public sentinel;
     DestinationLiquidatorGuard public guard;
 
-    address public constant CALLBACK_RELAYER = address(0xCAFE);
+    address public constant CALLBACK_RELAYER = address(0xCAFE); // Reactive callback proxy (msg.sender of callbacks)
+    address public constant RVM_ID = address(0xA11CE);          // deployer of the reactive contract = its RVM ID
     address public constant VAULT_OWNER = address(0xBEEF);
     uint256 public constant ORIGIN_CHAIN_ID = 1001; // Mock test chain ID
     uint256 public constant DEST_CHAIN_ID = 1001;   // Mock test chain ID
@@ -26,8 +27,8 @@ contract ReactiveRiskSentinelTest is Test {
     function setUp() public {
         originEmitter = new OriginRiskEmitter();
 
-        // Destination guard deployed on Base Sepolia, trusting CALLBACK_RELAYER
-        vm.prank(CALLBACK_RELAYER);
+        // Destination guard deployed on Base Sepolia by the RVM owner, trusting CALLBACK_RELAYER as the proxy
+        vm.prank(RVM_ID);
         guard = new DestinationLiquidatorGuard(CALLBACK_RELAYER);
 
         // Sentinel deployed on Reactive Network
@@ -143,7 +144,7 @@ contract ReactiveRiskSentinelTest is Test {
         uint256 actionCode = 2;
 
         vm.prank(CALLBACK_RELAYER);
-        guard.executeDefensiveAction(CALLBACK_RELAYER, vaultId, VAULT_OWNER, actionCode);
+        guard.executeDefensiveAction(RVM_ID, vaultId, VAULT_OWNER, actionCode);
 
         assertEq(guard.totalRebalances(), 1);
     }
@@ -160,6 +161,28 @@ contract ReactiveRiskSentinelTest is Test {
         assertEq(guard.totalRebalances(), 0);
     }
 
+    /// An outside caller who passes the correct RVM ID as the argument must still be rejected:
+    /// the RVM ID is public, so only msg.sender (the callback proxy) can authenticate a callback.
+    function test_destination_guard_rejects_unauthorized_caller_with_correct_rvm_id() public {
+        address attacker = address(0xBAD);
+
+        vm.prank(attacker);
+        vm.expectRevert("Authorized sender only");
+        guard.executeDefensiveAction(RVM_ID, 101, VAULT_OWNER, 1);
+
+        assertEq(guard.totalRebalances(), 0);
+    }
+
+    function test_destination_guard_nonce_path_rejects_unauthorized_caller() public {
+        address attacker = address(0xBAD);
+
+        vm.prank(attacker);
+        vm.expectRevert("Authorized sender only");
+        guard.executeDefensiveActionWithNonce(RVM_ID, 101, VAULT_OWNER, 1, 7);
+
+        assertEq(guard.totalRebalances(), 0);
+    }
+
     function test_destination_guard_replay_protection_blocks_duplicate_nonce() public {
         uint256 vaultId = 101;
         uint256 actionCode = 1;
@@ -167,12 +190,12 @@ contract ReactiveRiskSentinelTest is Test {
 
         vm.startPrank(CALLBACK_RELAYER);
         // First execution succeeds
-        guard.executeDefensiveActionWithNonce(CALLBACK_RELAYER, vaultId, VAULT_OWNER, actionCode, nonce);
+        guard.executeDefensiveActionWithNonce(RVM_ID, vaultId, VAULT_OWNER, actionCode, nonce);
         assertEq(guard.totalRebalances(), 1);
 
         // Replay attempt with same nonce must revert
         vm.expectRevert("Action already executed");
-        guard.executeDefensiveActionWithNonce(CALLBACK_RELAYER, vaultId, VAULT_OWNER, actionCode, nonce);
+        guard.executeDefensiveActionWithNonce(RVM_ID, vaultId, VAULT_OWNER, actionCode, nonce);
         vm.stopPrank();
 
         assertEq(guard.totalRebalances(), 1);

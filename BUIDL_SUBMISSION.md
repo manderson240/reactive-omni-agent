@@ -55,14 +55,14 @@ I wrote three contracts and a small Python package.
 
 1. `OriginRiskEmitter.emitRiskAlert` emits `CollateralRatioAlert(vaultId, owner, currentRatio, minRatio, recommendedAction)`. It is a stand-in for a lending vault so I can raise test alerts.
 2. `ReactiveRiskSentinel` extends `AbstractReactive`. Its constructor subscribes to `CollateralRatioAlert` on the origin contract. `react(LogRecord)` decodes the log and, when `currentRatio < minRatio`, emits a Reactive `Callback` that calls `executeDefensiveAction` on the destination guard with a 250000 gas limit.
-3. `DestinationLiquidatorGuard` extends `AbstractCallback`. `executeDefensiveAction` (guarded by `rvmIdOnly`) records the action and emits `RebalanceExecuted`. A second function, `executeDefensiveActionWithNonce`, also blocks replays of the same nonce.
+3. `DestinationLiquidatorGuard` extends `AbstractCallback`. `executeDefensiveAction` (guarded by `authorizedSenderOnly` and `rvmIdOnly`) records the action and emits `RebalanceExecuted`. A second function, `executeDefensiveActionWithNonce`, also blocks replays of the same nonce.
 4. The Python package (`src/reactive_sentinel/`) runs the same threshold rule off-chain in `verify_risk_event`, rejects action codes outside {1, 2, 3}, and signs an HMAC-SHA256 receipt per event. The `sentinel` CLI runs it on two hardcoded events.
 
 ### Reactive Network building blocks I used
 - `AbstractReactive`, `service.subscribe(...)` and `REACTIVE_IGNORE` for topic filtering.
 - `react(LogRecord)` with the `vmOnly` modifier.
 - The `Callback` event with the first address slot left as `address(0)` for the RVM ID.
-- `AbstractCallback` and `rvmIdOnly` on the destination side.
+- `AbstractCallback`, `authorizedSenderOnly` and `rvmIdOnly` on the destination side.
 
 What I learned about these is in the feedback report: `docs/reactive_omni_feedback_report.md`.
 
@@ -71,7 +71,7 @@ The off-chain part is a deterministic checker and signer that an agent could cal
 
 ### Limits
 - No deployment is recorded in this repo. The Foundry tests call `react()` directly; they do not go through a live subscription or relayer.
-- `executeDefensiveAction` checks the `_rvmId` argument, not `msg.sender`. A throwaway test showed any address can call it by passing the deployer address. It needs `authorizedSenderOnly` before deployment.
+- My first version of `executeDefensiveAction` checked only the `_rvmId` argument, not `msg.sender`, so any address could call it. I fixed it by adding `authorizedSenderOnly`, with tests that call from an outside address.
 - The reactive payload calls the function without replay protection. `setVmForTesting` and `emitRiskAlert` have no access control.
 - No funds move; the guard only counts actions and emits an event.
 

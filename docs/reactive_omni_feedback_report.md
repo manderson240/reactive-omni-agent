@@ -40,7 +40,7 @@ All the testing behind this report is local, in Foundry. No deployment to Base S
 
 ### B. `rvmIdOnly` does not authenticate the caller
 - **Issue**: `rvmIdOnly(_rvm_id)` checks that the `_rvm_id` argument matches the stored RVM ID (or that the stored ID is zero). It does not look at `msg.sender`. Caller authentication comes from a separate modifier, `authorizedSenderOnly` in `AbstractPayer`.
-- **Impact**: I used only `rvmIdOnly` on my destination functions. A throwaway Foundry test confirmed that any address can call `executeDefensiveAction` by passing the deployer address as the first argument. My own "rejects unauthorized RVM" test did not catch this, because it only changes the argument. This is my bug, but the modifier name made it easy to think one check was enough.
+- **Impact**: I used only `rvmIdOnly` on my destination functions. A throwaway Foundry test confirmed that any address can call `executeDefensiveAction` by passing the deployer address as the first argument. My own "rejects unauthorized RVM" test did not catch this, because it only changes the argument. This was my bug, but the modifier name made it easy to think one check was enough. I fixed it by adding `authorizedSenderOnly` to both callback functions, and the tests now call them from an outside address with the correct RVM ID and expect a revert.
 
 ### C. Subscription funding
 - **Issue**: I could not tell from the library how much native token a reactive contract needs at deploy time for its subscription and callbacks. My deploy script sends `0.05 ether` as a guess.

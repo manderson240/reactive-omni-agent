@@ -89,7 +89,7 @@ The signatures change on every run because the receipt includes a nanosecond tim
 
 1. [`src/OriginRiskEmitter.sol`](src/OriginRiskEmitter.sol): `emitRiskAlert(vaultId, owner, currentRatio, minRatio, recommendedAction)` emits `CollateralRatioAlert`. `vaultId` and `owner` are indexed; the ratios (basis points) and action code go in the data field. It does not hold a vault; it is a stand-in that lets me emit test alerts.
 2. [`src/ReactiveRiskSentinel.sol`](src/ReactiveRiskSentinel.sol): extends `AbstractReactive` from `reactive-lib`. The constructor calls `service.subscribe(originChainId, originContract, ALERT_TOPIC_0, ...)` when it is not running inside a ReactVM. `react(LogRecord)` (marked `vmOnly`) ignores any other `topic_0`, reads `vaultId` from `topic_1` and `owner` from `topic_2`, decodes `(currentRatio, minRatio, recommendedAction)` from `log.data`, and when `currentRatio < minRatio` emits `Callback(destinationChainId, destinationContract, 250000, payload)`. The payload calls `executeDefensiveAction(address,uint256,address,uint256)` with `address(0)` in the first slot, which the Reactive relayer replaces with the RVM ID. It counts `alertsProcessed` and `callbacksTriggered`.
-3. [`src/DestinationLiquidatorGuard.sol`](src/DestinationLiquidatorGuard.sol): extends `AbstractCallback`. `executeDefensiveAction` is guarded by `rvmIdOnly(_rvmId)`, increments `totalRebalances` and emits `RebalanceExecuted`. `executeDefensiveActionWithNonce` does the same and also rejects a repeated `(rvmId, vaultId, owner, actionCode, nonce)` hash. Neither function moves funds.
+3. [`src/DestinationLiquidatorGuard.sol`](src/DestinationLiquidatorGuard.sol): extends `AbstractCallback`. `executeDefensiveAction` is guarded by `authorizedSenderOnly` (caller must be the callback proxy) and `rvmIdOnly(_rvmId)`, increments `totalRebalances` and emits `RebalanceExecuted`. `executeDefensiveActionWithNonce` does the same and also rejects a repeated `(rvmId, vaultId, owner, actionCode, nonce)` hash. Neither function moves funds.
 
 Deployment scripts are in [`script/`](script): `DeployOriginAndDestination.s.sol`, `DeployReactiveSentinel.s.sol` (sends 0.05 ether to the reactive contract for subscription costs) and `TriggerRiskAlert.s.sol`.
 
@@ -151,7 +151,7 @@ sequenceDiagram
     Sentinel->>Sentinel: check topic_0, decode data
     alt currentRatio < minRatio
         Sentinel-->>Dest: emit Callback(destChainId, guard, 250000, payload)
-        Dest->>Dest: rvmIdOnly(_rvmId)
+        Dest->>Dest: authorizedSenderOnly + rvmIdOnly(_rvmId)
         Dest->>Dest: totalRebalances++, emit RebalanceExecuted
     else ratio is healthy
         Sentinel->>Sentinel: alertsProcessed++ only
@@ -193,7 +193,7 @@ I want to be clear about what this is and is not.
 
 - **No deployment is recorded in this repo.** There is no `broadcast/` directory and the contract addresses in `.env.example` are empty. Nothing in this repo shows the contracts running on Base Sepolia or Lasna. The Foundry tests call `react()` directly with a hand-built `LogRecord`; they do not go through a real subscription or relayer.
 - **The subscription branch is not tested.** In Foundry there is no code at the system contract address, so `detectVm()` sets `vm = true` and the constructor skips `service.subscribe(...)`.
-- **The destination guard does not check `msg.sender`.** `rvmIdOnly(_rvmId)` compares the `_rvmId` argument with the stored RVM ID; it does not check who is calling, and the functions do not use `authorizedSenderOnly`. I confirmed with a throwaway Foundry test that a random address can call `executeDefensiveAction` by passing the deployer address as `_rvmId`. `test_destination_guard_rejects_unauthorized_rvm` only shows that a wrong argument reverts. Before a real deployment the guard needs `authorizedSenderOnly` (or an explicit `msg.sender` check against the callback proxy).
+- **Caller check was missing until the last commit.** The guard first used only `rvmIdOnly(_rvmId)`, which checks the `_rvmId` argument, not the caller, so any address could call `executeDefensiveAction` by passing the deployer address. Both callback functions now also use `authorizedSenderOnly`, and two tests (`test_destination_guard_rejects_unauthorized_caller_with_correct_rvm_id`, `test_destination_guard_nonce_path_rejects_unauthorized_caller`) call them from an outside address with the correct RVM ID and expect a revert.
 - **Replay protection is not on the live path.** Only `executeDefensiveActionWithNonce` stores processed action IDs. The reactive contract's payload calls `executeDefensiveAction`, which has no nonce.
 - **Anyone can raise an alert.** `emitRiskAlert` has no access control (the `guardian` field is set and never used), and the Solidity side never checks the action code. Only the Python verifier restricts it to {1, 2, 3}.
 - **`setVmForTesting` is in the production contract** and has no access control. It must be removed before deployment.

@@ -19,6 +19,8 @@ contract DestinationLiquidatorGuard is AbstractCallback {
     constructor(address _callbackSender) AbstractCallback(_callbackSender) {}
 
     /// @notice Callback executed by the Reactive Network relayer.
+    /// @dev authorizedSenderOnly checks msg.sender is the callback proxy. rvmIdOnly alone is not
+    ///      enough: it checks the _rvmId argument, which any caller can set to the public RVM ID.
     /// @param _rvmId The reactive contract instance address that initiated this callback.
     /// @param vaultId The target vault identifier.
     /// @param owner The target vault owner.
@@ -28,7 +30,7 @@ contract DestinationLiquidatorGuard is AbstractCallback {
         uint256 vaultId,
         address owner,
         uint256 actionCode
-    ) external rvmIdOnly(_rvmId) {
+    ) external authorizedSenderOnly rvmIdOnly(_rvmId) {
         totalRebalances++;
         emit RebalanceExecuted(vaultId, owner, actionCode, block.timestamp);
     }
@@ -45,7 +47,7 @@ contract DestinationLiquidatorGuard is AbstractCallback {
         address owner,
         uint256 actionCode,
         uint256 nonce
-    ) external rvmIdOnly(_rvmId) {
+    ) external authorizedSenderOnly rvmIdOnly(_rvmId) {
         bytes32 actionId = keccak256(
             abi.encodePacked(_rvmId, vaultId, owner, actionCode, nonce)
         );
