@@ -13,7 +13,7 @@
 
 I built three contracts on `reactive-lib`: an origin contract that emits `CollateralRatioAlert`, a reactive contract (`ReactiveRiskSentinel`) that subscribes to it and emits a `Callback` when `currentRatio < minRatio`, and a destination guard (`DestinationLiquidatorGuard`) that receives the callback. A small Python package runs the same threshold check off-chain and signs a receipt.
 
-All my testing so far is local, in Foundry. I have not yet deployed to Base Sepolia or Lasna, so this report covers writing and testing the contracts, not running them on the network.
+All the testing behind this report is local, in Foundry. No deployment to Base Sepolia or Lasna is recorded in this repo, so this report covers writing and testing the contracts, not running them on the network.
 
 ---
 

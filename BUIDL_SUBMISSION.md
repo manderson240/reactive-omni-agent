@@ -82,6 +82,7 @@ On my machine, 7 of 7 Foundry tests pass in 7.11 ms (one of them is a 256-run fu
 git clone --recurse-submodules https://github.com/manderson240/reactive-omni-agent.git
 cd reactive-omni-agent
 forge test
+uv sync --extra dev
 uv run pytest
 uv run sentinel
 ```

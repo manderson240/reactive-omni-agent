@@ -18,7 +18,7 @@ cd reactive-omni-agent
 forge test
 
 # Python package
-uv sync
+uv sync --extra dev
 uv run pytest
 uv run sentinel
 ```
@@ -191,7 +191,7 @@ Read by the Foundry scripts and `foundry.toml`:
 
 I want to be clear about what this is and is not.
 
-- **Not deployed.** There is no `broadcast/` directory and the contract addresses in `.env.example` are empty. Nothing in this repo shows the contracts running on Base Sepolia or Lasna. The Foundry tests call `react()` directly with a hand-built `LogRecord`; they do not go through a real subscription or relayer.
+- **No deployment is recorded in this repo.** There is no `broadcast/` directory and the contract addresses in `.env.example` are empty. Nothing in this repo shows the contracts running on Base Sepolia or Lasna. The Foundry tests call `react()` directly with a hand-built `LogRecord`; they do not go through a real subscription or relayer.
 - **The subscription branch is not tested.** In Foundry there is no code at the system contract address, so `detectVm()` sets `vm = true` and the constructor skips `service.subscribe(...)`.
 - **The destination guard does not check `msg.sender`.** `rvmIdOnly(_rvmId)` compares the `_rvmId` argument with the stored RVM ID; it does not check who is calling, and the functions do not use `authorizedSenderOnly`. I confirmed with a throwaway Foundry test that a random address can call `executeDefensiveAction` by passing the deployer address as `_rvmId`. `test_destination_guard_rejects_unauthorized_rvm` only shows that a wrong argument reverts. Before a real deployment the guard needs `authorizedSenderOnly` (or an explicit `msg.sender` check against the callback proxy).
 - **Replay protection is not on the live path.** Only `executeDefensiveActionWithNonce` stores processed action IDs. The reactive contract's payload calls `executeDefensiveAction`, which has no nonce.
