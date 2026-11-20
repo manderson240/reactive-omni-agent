@@ -1,116 +1,60 @@
-# Reactive Omni Agent: Developer Feedback & Architecture Report
+# Reactive Omni Buildathon: Developer Feedback Report
+## What worked, what was confusing, and what I would change
 
-**Competition**: Reactive Omni Buildathon (DoraHacks)  
-**Author**: Mike Anderson (`manderson240@gmail.com`)  
-**Repository**: `github.com/manderson240/reactive-omni-agent`  
-**License**: MIT  
-**Date**: November 2026  
-
----
-
-## Executive Summary
-
-The **Reactive Omni Agent (Reactive Sentinel)** is an autonomous, cross-chain DeFi risk monitoring and liquidation guardian framework powered by **Reactive Network** smart contracts and an ultra-lightweight off-chain Python sentinel.
-
-Modern DeFi protocols across EVM rollups suffer from severe cross-chain latency, oracle manipulation risks, and predatory MEV liquidation cascades. When collateral volatility spikes on one rollup, borrowers cannot remediate positions on another rollup before liquidation bots extract predatory penalties.
-
-Reactive Sentinel solves this by decoupling cross-chain risk detection from traditional slow bridge relays:
-1. **Origin Chain (Base Sepolia)**: `OriginRiskEmitter` emits high-priority telemetry and vault risk events.
-2. **Reactive Network (Lasna Testnet)**: `ReactiveRiskSentinel` autonomously listens to events at the execution layer without centralized oracles, computes debt coverage margins, and dispatches authenticated cross-chain callbacks.
-3. **Destination Chain (Arbitrum / Optimism / Base)**: `DestinationLiquidatorGuard` receives verified callbacks from the Reactive Network relayer and triggers automated collateral protection or protective debt remediation before liquidation bots strike.
-4. **Off-Chain Sentinel**: Local Python runtime providing sub-millisecond local policy simulation and zero-latency transaction attestation.
+**Hackathon**: [Reactive Omni Buildathon (DoraHacks)](https://dorahacks.io/hackathon/reactive-omni-buildathon/detail)  
+**Project**: Reactive Omni Sentinel  
+**Library used**: `reactive-lib` (git submodule in `lib/reactive-lib`), Foundry `forge 1.9.0`  
+**Author**: Mike Anderson (`github.com/manderson240`), solo builder  
+**Repository**: https://github.com/manderson240/reactive-omni-agent  
 
 ---
 
-## Evaluation Pillars
+## 1. Summary
 
-### 1. Execution (Score: 10/10)
-- **Zero-Latency Invariant Execution**: The smart contracts compile under Foundry with strict optimizer passes (`via-ir = false`, 200 runs).
-- **Dual Test Suites**:
-  - Solidity Foundry Suite (`test/ReactiveRiskSentinel.t.sol`): 5/5 passed in 1.31ms.
-  - Python Sentinel Suite (`tests/test_agent.py`): 6/6 passed in 0.07s.
-- **Dynamic Deployment**: Modular deployment scripts (`script/DeployReactiveSentinel.s.sol`, `script/DeployTriggerRiskAlert.s.sol`) support any EVM chain via dynamic environment configuration.
-- **Fail-Safe Fallbacks**: If on-chain gas spikes, the off-chain Python sentinel can broadcast signed protective transactions directly to the destination contract.
+I built three contracts on `reactive-lib`: an origin contract that emits `CollateralRatioAlert`, a reactive contract (`ReactiveRiskSentinel`) that subscribes to it and emits a `Callback` when `currentRatio < minRatio`, and a destination guard (`DestinationLiquidatorGuard`) that receives the callback. A small Python package runs the same threshold check off-chain and signs a receipt.
 
-### 2. Integration (Score: 10/10)
-- **Native Reactive Network Protocols**: Implements the official Reactive Network interfaces:
-  - `IReactive`: Handles execution callbacks via `react(uint256 chain_id, address _contract, uint256 topic_0, uint256 topic_1, uint256 topic_2, uint256 topic_3, bytes calldata data, uint256 counter, uint256 gas)`.
-  - `ISubscriptionService`: Dynamically manages event subscriptions with topic filtering.
-- **Cross-Chain Event Subscriptions**: Subscribes to `RiskAlertEmitted(bytes32,address,uint256,uint256,uint8)` on the origin chain and routes callbacks to the destination contract without trusting third-party relayer networks.
-- **EVM Compatibility**: Tested against Base Sepolia and Reactive Lasna with standardized ABI encoding.
-
-### 3. Usefulness (Score: 10/10)
-- **Eliminating MEV Liquidation Griefing**: Traditional liquidations extract 5% to 15% liquidation penalties from borrowers. Reactive Sentinel enables autonomous debt self-remediation (flash-repaying or collateral rebalancing) milliseconds before predatory searchers can trigger liquidations.
-- **Cross-Rollup Liquidity Protection**: Allows users with collateral on Base to protect debt positions on Optimism or Arbitrum automatically, removing multi-chain fragmentation friction.
-- **Zero Ongoing Cloud Costs**: The off-chain agent runs on local commodity hardware or edge nodes (<15MB RAM footprint), while the smart contracts react on-chain autonomously.
-
-### 4. Craft (Score: 10/10)
-- **KISS Philosophy**: The repository contains only 24 clean files, with 2 Python runtime dependencies (`web3`, `pydantic`).
-- **Zero Hardcoded Secrets & Dynamic Chain IDs**:
-  - No private keys, RPC URLs, or chain IDs are hardcoded in source code or committed to Git.
-  - All identifiers (`ORIGIN_CHAIN_ID`, `DESTINATION_CHAIN_ID`, `REACTIVE_CHAIN_ID`) are loaded dynamically from environment variables.
-  - Follows the Google Password Manager standard for production credential security.
-- **Comprehensive Documentation**: Complete `.env.example`, architecture diagrams, and 1-command quickstarts (`forge test`, `uv run sentinel`).
+All my testing so far is local, in Foundry. I have not yet deployed to Base Sepolia or Lasna, so this report covers writing and testing the contracts, not running them on the network.
 
 ---
 
-## Smart Contract Architecture
+## 2. What worked
 
-```
-+---------------------------+
-| Origin Chain              |
-| (e.g. Base Sepolia)       |
-|                           |
-|  +---------------------+  |
-|  | OriginRiskEmitter   |  |
-|  | - emitRiskAlert()   |  |
-|  +----------+----------+  |
-+-------------|-------------+
-              | (On-Chain Event Log)
-              v
-+---------------------------+
-| Reactive Network          |
-| (Lasna Testnet)           |
-|                           |
-|  +---------------------+  |
-|  | ReactiveRiskSentinel|  |
-|  | - react(...)        |  |
-|  | - Filter & Calculate|  |
-|  +----------+----------+  |
-+-------------|-------------+
-              | (Reactive Callback Relayer)
-              v
-+---------------------------+
-| Destination Chain         |
-| (e.g. Arbitrum Sepolia)   |
-|                           |
-|  +---------------------+  |
-|  | LiquidatorGuard     |  |
-|  | - executeProtection |  |
-|  +---------------------+  |
-+---------------------------+
-```
+### A. Small base contracts
+- `AbstractReactive` and `AbstractCallback` are short enough to read in full. Extending them gave me `service`, `vm`, `vmOnly`, `rvmIdOnly` and the payment plumbing without any other setup.
+- `service.subscribe(chainId, contract, topic0, REACTIVE_IGNORE, REACTIVE_IGNORE, REACTIVE_IGNORE)` was clear once I saw `REACTIVE_IGNORE` used as the wildcard.
+
+### B. `LogRecord` in `react`
+- Getting the whole log as one `IReactive.LogRecord` struct made decoding simple: indexed fields come from `topic_1` and `topic_2`, the rest from `abi.decode(log.data, ...)`.
+- Because `react` takes a plain struct, I could build a `LogRecord` by hand in a Foundry test and call `react()` directly. That covered the decode and threshold logic, including a 256-run fuzz test over the two ratios.
+
+### C. The callback payload convention
+- Emitting `Callback(chainId, contract, gasLimit, payload)` is a simple interface. Leaving the first address argument as `address(0)` for the relayer to fill with the RVM ID worked fine with `abi.encodeWithSignature`.
 
 ---
 
-## Developer Experience & Recommendations for Reactive Network
+## 3. What was confusing
 
-During the development of Reactive Omni Agent, we identified several high-leverage developer experience opportunities for the Reactive Network ecosystem:
+### A. Testing the subscription path locally
+- **Issue**: `detectVm()` decides ReactVM vs top-level Reactive Network by checking for code at `0x...fffFfF`. In a plain Foundry test there is no code there, so every contract thinks it is inside a ReactVM, and the constructor branch that calls `service.subscribe(...)` never runs.
+- **Impact**: my tests never exercise the subscription. My contract also has a `setVmForTesting` setter that the tests call. Since `vm` is already `true` in Foundry, the setter is unnecessary there, and it is a hazard in a production contract because it has no access control. I need to remove it.
 
-1. **Local Test Environment (Anvil / Hardhat Mock Relayer)**:
-   - *Observation*: Testing `IReactive` callbacks currently requires deploying to live testnets or building extensive mock relayer contracts in Foundry.
-   - *Recommendation*: Provide an official `reactive-testing-kit` Foundry package with a mock `SubscriptionService` and simulated `Relayer` that dispatches `react(...)` calls in local Forge tests.
+### B. `rvmIdOnly` does not authenticate the caller
+- **Issue**: `rvmIdOnly(_rvm_id)` checks that the `_rvm_id` argument matches the stored RVM ID (or that the stored ID is zero). It does not look at `msg.sender`. Caller authentication comes from a separate modifier, `authorizedSenderOnly` in `AbstractPayer`.
+- **Impact**: I used only `rvmIdOnly` on my destination functions. A throwaway Foundry test confirmed that any address can call `executeDefensiveAction` by passing the deployer address as the first argument. My own "rejects unauthorized RVM" test did not catch this, because it only changes the argument. This is my bug, but the modifier name made it easy to think one check was enough.
 
-2. **Standardized Reactive Error Codes**:
-   - *Observation*: Reverts inside `react(...)` during cross-chain execution can be difficult to diagnose when logs are relayed back.
-   - *Recommendation*: Standardize callback return structs or event emitters in `IReactive` to capture gas left and target revert reasons.
-
-3. **Multi-Topic Dynamic Masking**:
-   - *Observation*: Filtering multiple addresses in event topics requires separate subscriptions or client-side filtering.
-   - *Recommendation*: Expand `ISubscriptionService` to support bitmasking or array-based topic filtering.
+### C. Subscription funding
+- **Issue**: I could not tell from the library how much native token a reactive contract needs at deploy time for its subscription and callbacks. My deploy script sends `0.05 ether` as a guess.
 
 ---
 
-## Conclusion
+## 4. Recommendations
 
-The **Reactive Omni Agent** proves that autonomous, event-driven cross-chain security is practical, safe, and cost-effective today. By combining Reactive Network's execution-layer event subscriptions with deterministic agentic sentinels, DeFi protocols can eliminate multi-chain liquidation vulnerabilities without relying on centralized bots.
+1. **A local test kit.** A Foundry helper that deploys a mock system contract at `0x...fffFfF` (so the top-level subscription branch runs) and a mock relayer that forwards an emitted `Callback` to the destination with the RVM ID filled in. That would let a full origin to reactive to destination round trip run in one `forge test`.
+2. **A combined callback modifier.** Something like `callbackOnly(_rvm_id)` in `AbstractCallback` that applies both `authorizedSenderOnly` and the RVM ID check, plus a note in the docs that `rvmIdOnly` alone does not check the caller.
+3. **Documented funding guidance.** A short table or formula for how much to send to a reactive contract at deploy time, and how `coverDebt()` fits in.
+
+---
+
+## 5. Status
+
+The contracts compile and 7 of 7 Foundry tests pass locally (7.11 ms on my machine). Before deploying I plan to add caller authentication and replay protection on the path the callback actually uses, remove `setVmForTesting`, and restrict who can call `emitRiskAlert`.

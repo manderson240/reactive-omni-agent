@@ -38,107 +38,102 @@ SCENES = [
     {
         "id": "scene0_title_hero",
         "narration": (
-            "Reactive Omni Sentinel. Autonomous cross-chain DeFi liquidation and risk guardian "
-            "built natively on Reactive Network I-Reactive contracts for the DoraHacks Reactive Omni Buildathon "
-            "Track One and Track Three. Replacing slow five-to-twenty minute bridges with sub-millisecond execution-layer triggers. "
-            "Combining ReactVM event reactivity on Reactive Lasna with a deterministic Python safety verifier "
-            "running in point zero zero one milliseconds p50, Foundry seven out of seven tests in six point four milliseconds, "
-            "Pytest six out of six tests, Cohen's d two point zero four, and Wald SPRT plus ninety-two point nine zero."
+            "Reactive Omni Sentinel. I built this for the DoraHacks Reactive Omni Buildathon, tracks one and three. "
+            "An origin contract emits a collateral ratio alert. "
+            "A reactive contract on Reactive Network subscribes to it and, when the ratio is under its threshold, "
+            "emits a callback to a guard contract on the destination chain. "
+            "A small Python package runs the same check off chain and signs a receipt. "
+            "Everything shown here runs locally: seven Foundry tests and six Python tests pass on my machine."
         ),
         "html_body": """
             <div class="header" style="text-align:center;margin-top:12px;margin-bottom:24px;">
-                <span class="badge" style="font-size:20px;padding:8px 26px;">Reactive Omni Buildathon • Track 1 &amp; Track 3 ($5,500 Pool)</span>
+                <span class="badge" style="font-size:20px;padding:8px 26px;">Reactive Omni Buildathon: Track 1 &amp; Track 3</span>
                 <h1 style="font-size:64px;margin-top:14px;margin-bottom:10px;letter-spacing:-2px;">Reactive Omni Sentinel</h1>
                 <p class="subtitle" style="font-size:26px;margin:0 auto;max-width:1950px;color:#38bdf8;font-weight:500;">
-                    Cross-Chain DeFi Liquidation Defense powered by Reactive Network (IReactive) &amp; Zero-Token Safety Verifier
+                    Origin alert to Reactive callback to destination guard, plus a Python threshold checker
                 </p>
             </div>
             <div class="grid-4" style="margin-top:20px;margin-bottom:20px;">
                 <div class="card" style="text-align:center;border-color:rgba(56,189,248,0.4);background:rgba(56,189,248,0.08);">
-                    <div class="card-icon">⚡</div>
-                    <h3 style="font-size:30px;color:#38bdf8;">6.4 ms | 0.001</h3>
-                    <p style="font-size:18px;color:#cbd5e1;">Foundry RVM tests &amp; 0.0010 ms p50 verifier gate</p>
+                    <h3 style="font-size:30px;color:#38bdf8;">OriginRiskEmitter</h3>
+                    <p style="font-size:18px;color:#cbd5e1;">emitRiskAlert() emits CollateralRatioAlert</p>
                 </div>
                 <div class="card" style="text-align:center;border-color:rgba(34,197,94,0.4);background:rgba(34,197,94,0.08);">
-                    <div class="card-icon">🛡️</div>
-                    <h3 style="font-size:30px;color:#22c55e;">IReactive IoC</h3>
-                    <p style="font-size:18px;color:#cbd5e1;">Execution-layer ReactVM event listening without off-chain poller lag</p>
+                    <h3 style="font-size:30px;color:#22c55e;">ReactiveRiskSentinel</h3>
+                    <p style="font-size:18px;color:#cbd5e1;">react(LogRecord): currentRatio &lt; minRatio emits Callback</p>
                 </div>
                 <div class="card" style="text-align:center;border-color:rgba(192,132,252,0.4);background:rgba(192,132,252,0.08);">
-                    <div class="card-icon">🔐</div>
-                    <h3 style="font-size:30px;color:#c084fc;">Monotonic Nonces</h3>
-                    <p style="font-size:18px;color:#cbd5e1;">RVM ID injection + replay guard &amp; dynamic chain IDs</p>
+                    <h3 style="font-size:30px;color:#c084fc;">DestinationLiquidatorGuard</h3>
+                    <p style="font-size:18px;color:#cbd5e1;">executeDefensiveAction() counts the action, emits RebalanceExecuted</p>
                 </div>
                 <div class="card" style="text-align:center;border-color:rgba(245,158,11,0.4);background:rgba(245,158,11,0.08);">
-                    <div class="card-icon">📊</div>
-                    <h3 style="font-size:30px;color:#f59e0b;">d = 2.04 | +92.9</h3>
-                    <p style="font-size:18px;color:#cbd5e1;">Foundry 7/7 (256 fuzz) + Pytest 6/6 • N=100 SPRT certified</p>
+                    <h3 style="font-size:30px;color:#f59e0b;">Tests</h3>
+                    <p style="font-size:18px;color:#cbd5e1;">Foundry 7/7 (one 256-run fuzz test), pytest 6/6</p>
                 </div>
             </div>
             <div class="flow-container" style="margin-top:16px;">
-                <div class="chip chip-blue" style="font-size:17px;padding:10px 20px;">Base Sepolia (Origin)</div>
-                <div class="chip chip-green" style="font-size:17px;padding:10px 20px;">Reactive Lasna (ReactVM)</div>
-                <div class="chip chip-blue" style="font-size:17px;padding:10px 20px;">Arbitrum Sepolia (Guard)</div>
-                <div class="chip chip-green" style="font-size:17px;padding:10px 20px;">Dual Foundry 7/7 + Pytest 6/6</div>
+                <div class="chip chip-blue" style="font-size:17px;padding:10px 20px;">Origin chain</div>
+                <div class="chip chip-green" style="font-size:17px;padding:10px 20px;">Reactive Network (ReactVM)</div>
+                <div class="chip chip-blue" style="font-size:17px;padding:10px 20px;">Destination chain</div>
+                <div class="chip chip-green" style="font-size:17px;padding:10px 20px;">Local tests only, not deployed yet</div>
             </div>
         """,
     },
     {
         "id": "scene1_problem_workflow",
         "narration": (
-            "Eliminating the Cross-Chain Liquidation Vulnerability Window. "
-            "When collateral drops sharply on Base while debt sits on Arbitrum, traditional multi-sig bridges lag five to twenty minutes, "
-            "exposing borrowers to fifteen percent punitive MEV liquidations. "
-            "Step one: OriginRiskEmitter emits CollateralRatioAlert on Base Sepolia. "
-            "Step two: ReactiveRiskSentinel receives LogRecord inside ReactVM, verifies topic zero and collateral threshold invariants, "
-            "and emits a Callback targeting Arbitrum. "
-            "Step three: DestinationLiquidatorGuard authenticates the RVM caller and executes defensive debt repayment before MEV strikes."
+            "The idea: a lending position can sit on one chain while the price move that endangers it happens on another. "
+            "Step one: OriginRiskEmitter emits CollateralRatioAlert. "
+            "Step two: ReactiveRiskSentinel receives the log as a LogRecord inside the ReactVM, checks topic zero, "
+            "decodes the ratios, and emits a Callback when the current ratio is below the minimum. "
+            "Step three: DestinationLiquidatorGuard receives the call. "
+            "It records the action and emits an event; it does not move any funds."
         ),
         "html_body": """
             <div class="header">
-                <span class="badge">Architecture • Autonomous Cross-Chain Risk Defense</span>
-                <h1>Inversion-of-Control Execution on Reactive Network</h1>
-                <p class="subtitle">Connecting Origin alerts, Lasna ReactVM callbacks, and Destination safety guards.</p>
+                <span class="badge">Architecture</span>
+                <h1>Event-driven callbacks on Reactive Network</h1>
+                <p class="subtitle">Origin alert, ReactVM check, destination guard.</p>
             </div>
             <div class="flow-container" style="margin-top:24px;">
                 <div class="flow-step">
                     <div class="flow-num">01</div>
-                    <h4>Origin Risk Alert</h4>
-                    <p>OriginRiskEmitter broadcasts indexed vaultId, owner &amp; collateral ratios on Origin chain.</p>
-                    <div class="chip">CollateralRatioAlert Event</div>
+                    <h4>Origin alert</h4>
+                    <p>OriginRiskEmitter emits indexed vaultId and owner, with ratios and action code in data.</p>
+                    <div class="chip">CollateralRatioAlert</div>
                 </div>
-                <div class="flow-arrow">➔</div>
+                <div class="flow-arrow">&rarr;</div>
                 <div class="flow-step highlight">
                     <div class="flow-num">02</div>
                     <h4>ReactiveRiskSentinel</h4>
-                    <p>ReactVM triggers react(LogRecord), verifies currentRatio &lt; minRatio, emits Callback.</p>
-                    <div class="chip chip-blue">Zero Polling • Lasna RVM</div>
+                    <p>react(LogRecord) checks currentRatio &lt; minRatio and emits Callback.</p>
+                    <div class="chip chip-blue">250000 gas limit</div>
                 </div>
-                <div class="flow-arrow">➔</div>
+                <div class="flow-arrow">&rarr;</div>
                 <div class="flow-step">
                     <div class="flow-num">03</div>
-                    <h4>Destination Guard</h4>
-                    <p>DestinationLiquidatorGuard verifies RVM ID injection and defends borrower position atomically.</p>
-                    <div class="chip chip-green">Action Code ∈ {1,2,3}</div>
+                    <h4>Destination guard</h4>
+                    <p>DestinationLiquidatorGuard runs rvmIdOnly, increments totalRebalances, emits RebalanceExecuted.</p>
+                    <div class="chip chip-green">No funds move</div>
                 </div>
             </div>
             <div class="grid-2" style="margin-top:24px;">
-                <div class="card danger">
-                    <h3>❌ Legacy Cross-Chain Pollers &amp; Bridges</h3>
+                <div class="card success">
+                    <h3>What it does</h3>
                     <ul>
-                        <li><strong>Bridge Lag:</strong> 5 to 20 minute confirmation exposes vault to MEV liquidators</li>
-                        <li><strong>Centralized Relayers:</strong> Single-server RPC cron loops go down or drop events</li>
-                        <li><strong>Callback Spoofing:</strong> Destination executes malicious external action codes</li>
-                        <li><strong>Hardcoded Keys:</strong> Secrets committed in scripts expose private wallets</li>
+                        <li><strong>Subscription:</strong> constructor calls service.subscribe for CollateralRatioAlert</li>
+                        <li><strong>Check:</strong> react() emits a Callback only when currentRatio &lt; minRatio</li>
+                        <li><strong>Python:</strong> verify_risk_event checks the same rule and action_code in {1,2,3}</li>
+                        <li><strong>Receipt:</strong> HMAC-SHA256 over event, chain IDs, outcome and timestamp</li>
                     </ul>
                 </div>
-                <div class="card success">
-                    <h3>✅ Reactive Omni Sentinel</h3>
+                <div class="card danger">
+                    <h3>What it does not do yet</h3>
                     <ul>
-                        <li><strong>IoC Reactivity:</strong> Execution-layer EVM subscription fires immediately via ReactVM</li>
-                        <li><strong>Zero Secrets:</strong> 100% dynamic chain IDs resolved from runtime environment</li>
-                        <li><strong>AST &amp; Param Gate:</strong> Python sentinel validates <code>action_code ∈ {1,2,3}</code> in 0.001ms</li>
-                        <li><strong>Cryptographic Audit:</strong> Signs every reactive event via HMAC attestation receipts</li>
+                        <li><strong>Deployment:</strong> none recorded in the repo</li>
+                        <li><strong>Caller check:</strong> the guard checks the rvmId argument, not msg.sender</li>
+                        <li><strong>Replay guard:</strong> only on executeDefensiveActionWithNonce, not the callback path</li>
+                        <li><strong>Chain link:</strong> the Python package does not read events or send transactions</li>
                     </ul>
                 </div>
             </div>
@@ -147,38 +142,39 @@ SCENES = [
     {
         "id": "scene2_core_source_code",
         "narration": (
-            "Now let us walk through the verbatim Solidity contract in src/ReactiveRiskSentinel.sol lines seven through ninety-one. "
-            "On the left, the constructor subscribes cleanly on Reactive Network to CollateralRatioAlert topic zero on the target origin chain and contract. "
-            "On the right, the vmOnly react function extracts vaultId and owner from indexed log topics, "
-            "decodes collateral ratios, enforces currentRatio strictly below minRatio, and emits the destination Callback reserving the first slot for RVM ID injection."
+            "Here is the Solidity contract in src/ReactiveRiskSentinel.sol, lines seven through ninety-one. "
+            "On the left, the constructor subscribes to CollateralRatioAlert on the origin chain and contract. "
+            "On the right, the vmOnly react function reads vaultId and owner from the indexed topics, "
+            "decodes the ratios, and emits the destination Callback when the current ratio is below the minimum. "
+            "The first address slot is left as zero for the relayer to fill with the RVM ID."
         ),
         "html_body": f"""
             <div class="header">
-                <span class="badge">Code Walkthrough • Reactive Network Contract</span>
-                <h1>Core Smart Contract: ReactiveRiskSentinel.sol</h1>
-                <p class="subtitle">Complete verbatim ReactVM contract from <code>src/ReactiveRiskSentinel.sol</code> (lines 7 to 91, zero ellipses).</p>
+                <span class="badge">Code: Reactive Network contract</span>
+                <h1>ReactiveRiskSentinel.sol</h1>
+                <p class="subtitle">From <code>src/ReactiveRiskSentinel.sol</code>, lines 7 to 91.</p>
             </div>
             <div class="code-grid-2">
                 <div class="code-box">
                     <div class="linux-bar">
                         <span class="linux-tab">src/ReactiveRiskSentinel.sol (Lines 7 to 50)</span>
-                        <div class="linux-controls"><span>_</span><span>□</span><span>✕</span></div>
+                        <div class="linux-controls"><span>_</span><span>&#9633;</span><span>x</span></div>
                     </div>
                     <pre style="font-size:14.2px;line-height:1.30;">{REACTIVE_CONTRACT_PART1}</pre>
                     <div class="eval-flow">
-                        <span class="flow-pill pass">✓ IReactive Subscription</span>
-                        <span class="flow-pill pass">✓ Dynamic Chain Binding</span>
+                        <span class="flow-pill pass">service.subscribe()</span>
+                        <span class="flow-pill pass">ALERT_TOPIC_0</span>
                     </div>
                 </div>
                 <div class="code-box">
                     <div class="linux-bar">
                         <span class="linux-tab">src/ReactiveRiskSentinel.sol (Lines 50 to 91)</span>
-                        <div class="linux-controls"><span>_</span><span>□</span><span>✕</span></div>
+                        <div class="linux-controls"><span>_</span><span>&#9633;</span><span>x</span></div>
                     </div>
                     <pre style="font-size:14.2px;line-height:1.30;">{REACTIVE_CONTRACT_PART2}</pre>
                     <div class="eval-flow">
-                        <span class="flow-pill pass">✓ vmOnly Gate</span>
-                        <span class="flow-pill pass">✓ RVM Callback Emission</span>
+                        <span class="flow-pill pass">vmOnly</span>
+                        <span class="flow-pill pass">emit Callback</span>
                     </div>
                 </div>
             </div>
@@ -187,38 +183,39 @@ SCENES = [
     {
         "id": "scene3_verifier_source_code",
         "narration": (
-            "Next is the paired off-chain deterministic verifier and sentinel agent in Python. "
-            "On the left, src/reactive_sentinel/verifier.py lines thirteen through eighty-three validates vaultId, "
-            "positive collateral ratios, and permitted defensive action codes one, two, or three in zero point zero zero one milliseconds. "
-            "On the right, ReactiveSentinelAgent resolves chain IDs dynamically and signs cryptographic ReactiveAttestationReceipt outputs."
+            "Next is the Python side. "
+            "On the left, src/reactive_sentinel/verifier.py lines thirteen through eighty-three rejects non-positive IDs and ratios "
+            "and any action code other than one, two, or three, then applies the same ratio rule as the contract. "
+            "On the right, ReactiveSentinelAgent reads chain IDs from the environment and signs a ReactiveAttestationReceipt for each event. "
+            "There is no model call in this package."
         ),
         "html_body": f"""
             <div class="header">
-                <span class="badge">Code Walkthrough • Off-Chain Sentinel &amp; Verifier</span>
-                <h1>Deterministic Guardrail: verifier.py &amp; agent.py</h1>
-                <p class="subtitle">Complete Python verifier and dynamic sentinel pipeline (zero ellipses, zero hardcoded chain IDs).</p>
+                <span class="badge">Code: off-chain checker</span>
+                <h1>verifier.py and agent.py</h1>
+                <p class="subtitle">The Python threshold check and receipt signer.</p>
             </div>
             <div class="code-grid-2">
                 <div class="code-box">
                     <div class="linux-bar">
                         <span class="linux-tab">src/reactive_sentinel/verifier.py (Lines 13 to 83)</span>
-                        <div class="linux-controls"><span>_</span><span>□</span><span>✕</span></div>
+                        <div class="linux-controls"><span>_</span><span>&#9633;</span><span>x</span></div>
                     </div>
                     <pre style="font-size:13.0px;line-height:1.23;">{VERIFIER_PY_CODE}</pre>
                     <div class="eval-flow">
-                        <span class="flow-pill pass">✓ VALID_ACTION_CODES Gate</span>
-                        <span class="flow-pill pass">✓ 0.0010 ms p50</span>
+                        <span class="flow-pill pass">VALID_ACTION_CODES</span>
+                        <span class="flow-pill pass">current_ratio &lt; min_ratio</span>
                     </div>
                 </div>
                 <div class="code-box">
                     <div class="linux-bar">
                         <span class="linux-tab">src/reactive_sentinel/agent.py (Lines 16 to 67)</span>
-                        <div class="linux-controls"><span>_</span><span>□</span><span>✕</span></div>
+                        <div class="linux-controls"><span>_</span><span>&#9633;</span><span>x</span></div>
                     </div>
                     <pre style="font-size:13.8px;line-height:1.27;">{AGENT_PY_CODE}</pre>
                     <div class="eval-flow">
-                        <span class="flow-pill pass">✓ Dynamic Env Resolution</span>
-                        <span class="flow-pill pass">✓ HMAC Receipt Signer</span>
+                        <span class="flow-pill pass">Chain IDs from env</span>
+                        <span class="flow-pill pass">HMAC receipt</span>
                     </div>
                 </div>
             </div>
@@ -227,49 +224,47 @@ SCENES = [
     {
         "id": "scene4_honest_vs_adversarial_exec",
         "narration": (
-            "Side-by-side Foundry and Python defense walkthrough. "
-            "On the left, a valid CollateralRatioAlert with ratio one hundred ten percent below threshold triggers the Lasna ReactVM callback, "
-            "executes destination defense atomically, and commits an HMAC receipt. "
-            "On the right, an adversarial invalid vault ID, invalid action code ninety-nine, or unauthorized non-RVM callback caller "
-            "is blocked immediately by both verifier_risk_event and DestinationLiquidatorGuard."
+            "On the left is the demo CLI. Vault one oh one is at one hundred ten percent against a one hundred twenty-five percent minimum, "
+            "so a callback is required; vault one oh two is healthy, so none is. "
+            "The Lasna status lines in this output are fixed strings: the demo does not connect to any network. "
+            "On the right are the Foundry tests for the destination guard. "
+            "A wrong RVM ID argument reverts, and a repeated nonce reverts on the nonce variant."
         ),
         "html_body": """
             <div class="header">
-                <span class="badge">Live Walkthrough • Defense Callback vs. Unauthorized Attack</span>
-                <h1>Execution Traces: Defensive Callback Triggered vs. Forged Event Blocked</h1>
-                <p class="subtitle">Multi-layer RVM verification protecting DeFi borrowers from liquidations and unauthorized callbacks.</p>
+                <span class="badge">Runs from my machine</span>
+                <h1>Demo CLI and destination guard tests</h1>
+                <p class="subtitle">Output trimmed to the relevant lines.</p>
             </div>
             <div class="code-grid-2">
                 <div class="terminal-mini">
                     <div class="linux-bar">
-                        <span class="linux-tab">reactive-lasna: Collateral Ratio Drop Defense</span>
-                        <div class="linux-controls"><span>_</span><span>□</span><span>✕</span></div>
+                        <span class="linux-tab">uv run sentinel</span>
+                        <div class="linux-controls"><span>_</span><span>&#9633;</span><span>x</span></div>
                     </div>
                     <div class="term-lines" style="font-size:17px;">
-                        <p class="t-line"><span class="t-prompt">$</span> uv run sentinel-cli verify --vault 42 --ratio 11000 --min 12500 --action 1</p>
-                        <p class="t-line t-cyan">[1] ReactiveRiskSentinel.react(LogRecord) on Lasna...</p>
-                        <p class="t-line t-indent">currentRatio (11000) &lt; minRatio (12500) <span class="t-green">[BREACH CONFIRMED]</span></p>
-                        <p class="t-line t-indent">Emitted Callback → executeDefensiveAction(rvmId, vault=42)</p>
-                        <p class="t-line t-cyan">[2] Off-Chain Python Verifier &amp; HMAC Signer...</p>
-                        <p class="t-line t-indent">valid=True • requires_callback=<span class="t-green">True</span> • latency=<span class="t-green">0.0010 ms</span></p>
-                        <p class="t-line t-indent">receipt_sig=<span class="t-yellow">e4b71a...90f2</span></p>
-                        <div class="t-banner-pass">DEFENSIVE CALLBACK AUTHORIZED • ZERO MEV LOSS</div>
+                        <p class="t-line"><span class="t-prompt">$</span> uv run sentinel</p>
+                        <p class="t-line t-cyan">[2] Ingesting Risk Event: 'evt-vault-101-margin-call'</p>
+                        <p class="t-line t-indent">Vault ID: 101 | Collateral Ratio: 110% | Min Ratio: 125%</p>
+                        <p class="t-line t-indent">[OK] Action Triggered:  CALLBACK REQUIRED -&gt; executeDefensiveAction(vault=101, action=1)</p>
+                        <p class="t-line t-cyan">[3] Ingesting Normal Event: 'evt-vault-102-healthy'</p>
+                        <p class="t-line t-indent">Vault ID: 102 | Collateral Ratio: 155% | Min Ratio: 125%</p>
+                        <p class="t-line t-indent">[OK] Action Triggered:  NO CALLBACK (compute and gas conserved)</p>
+                        <p class="t-line t-yellow">Lasna status lines are fixed strings; no network is contacted.</p>
                     </div>
                 </div>
                 <div class="terminal-mini danger-border">
                     <div class="linux-bar danger-header">
-                        <span class="linux-tab-danger">reactive-lasna: Invalid Action &amp; Spoofed Callback</span>
-                        <div class="linux-controls"><span>_</span><span>□</span><span>✕</span></div>
+                        <span class="linux-tab-danger">forge test</span>
+                        <div class="linux-controls"><span>_</span><span>&#9633;</span><span>x</span></div>
                     </div>
                     <div class="term-lines" style="font-size:17px;">
-                        <p class="t-line"><span class="t-prompt">$</span> forge test --match-test test_RevertUnauthorizedCallback -vv</p>
-                        <p class="t-line t-yellow">[1] Attempt #1: Non-RVM caller invoking DestinationLiquidatorGuard...</p>
-                        <p class="t-line t-indent t-red">✕ EVM Revert: Unauthorized rvmOnly caller</p>
-                        <p class="t-line t-yellow">[2] Attempt #2: Invalid action_code=99 or vault_id=-1...</p>
-                        <p class="t-line t-indent t-red">✕ Python Gate: Invalid action_code (valid=False)</p>
-                        <p class="t-line t-cyan">[3] Replay Guard Check...</p>
-                        <p class="t-line t-indent">Destination balance &amp; vault state <span class="t-green">100% UNCHANGED</span></p>
-                        <div class="t-banner-fail">SPOOFED CALLBACK &amp; INVALID PARAMS REJECTED CLEANLY</div>
+                        <p class="t-line"><span class="t-prompt">$</span> forge test</p>
+                        <p class="t-line"><span class="t-green">[PASS]</span> test_destination_guard_executes_callback_from_authorized_rvm()</p>
+                        <p class="t-line"><span class="t-green">[PASS]</span> test_destination_guard_rejects_unauthorized_rvm()</p>
+                        <p class="t-line"><span class="t-green">[PASS]</span> test_destination_guard_replay_protection_blocks_duplicate_nonce()</p>
+                        <p class="t-line t-yellow">Known gap: the guard checks the rvmId argument, not msg.sender.</p>
+                        <p class="t-line t-yellow">A random caller passing the deployer address is accepted.</p>
                     </div>
                 </div>
             </div>
@@ -278,49 +273,48 @@ SCENES = [
     {
         "id": "scene5_verification_and_impact",
         "narration": (
-            "Full Verification Suite and V-Model Statistical Proof. "
-            "Foundry executes all seven smart contract tests including two hundred fifty-six fuzz runs in six point four milliseconds, "
-            "and Pytest passes all six Python agent and CLI verification tests in zero point zero one seconds. "
-            "Across N equals one hundred V-Model trials, Cohen's d equals two point zero four three seven and Wald SPRT equals plus ninety-two point nine zero. "
-            "Ready for Reactive Lasna and Arbitrum Sepolia deployment."
+            "To check it yourself: forge test runs seven Foundry tests, one of them a fuzz test with two hundred fifty-six runs; "
+            "on my machine the suite finished in about seven milliseconds. "
+            "uv run pytest runs six Python tests. "
+            "Before deploying I still need caller authentication and replay protection on the callback path, "
+            "and to remove the test-only setter. The code is on GitHub at manderson240 slash reactive-omni-agent."
         ),
         "html_body": """
             <div class="header">
-                <span class="badge">V-Model Empirical Proof • Reactive Omni Buildathon</span>
-                <h1>Dual Foundry (7/7) + Pytest (6/6) &amp; N=100 Proof</h1>
-                <p class="subtitle">KISS Grade A+ cross-chain guardian verified across Solidity RVM contracts and Python CLI.</p>
+                <span class="badge">Verification</span>
+                <h1>Foundry 7/7 and pytest 6/6</h1>
+                <p class="subtitle">Local runs. Timings are from my machine.</p>
             </div>
             <div class="grid-2" style="margin-top:18px;gap:26px;">
                 <div class="terminal-window" style="height:640px;">
                     <div class="linux-bar">
-                        <span class="linux-tab">forge test &amp;&amp; uv run pytest</span>
-                        <div class="linux-controls"><span>_</span><span>□</span><span>✕</span></div>
+                        <span class="linux-tab">forge test &amp;&amp; uv run pytest -q</span>
+                        <div class="linux-controls"><span>_</span><span>&#9633;</span><span>x</span></div>
                     </div>
                     <div class="terminal-content" style="font-size:14.2px;line-height:1.42;">
-                        <p class="cmd">$ forge test -v (7/7 Passed in 6.4ms)</p>
-                        <p><span class="pass">[PASS]</span> OriginRiskEmitter • ReactiveRiskSentinel • DestinationGuard</p>
-                        <p><span class="pass">[PASS]</span> test_ReactsAndEmitsCallback • test_IgnoresSafeRatio</p>
-                        <p><span class="pass">[PASS]</span> test_RevertUnauthorizedCallback • testFuzz_DefensiveRatio(256 runs)</p>
-                        <p class="cmd" style="margin-top:8px;">$ uv run pytest -v (6/6 Passed in 0.01s)</p>
-                        <p><span class="pass">PASSED</span> verify_risk_event bounds + action codes {1,2,3}</p>
-                        <p><span class="pass">PASSED</span> Dynamic ORIGIN_CHAIN_ID / DESTINATION_CHAIN_ID env resolution</p>
-                        <p><span class="pass">PASSED</span> HMAC attestation generation &amp; CLI --json output</p>
-                        <p class="success-banner">Foundry 7 passed (6.4ms) • Pytest 6 passed (0.01s)</p>
+                        <p class="cmd">$ forge test</p>
+                        <p><span class="pass">[PASS]</span> test_react_triggers_callback_when_ratio_under_threshold()</p>
+                        <p><span class="pass">[PASS]</span> test_react_ignores_safe_ratio()</p>
+                        <p><span class="pass">[PASS]</span> test_react_ignores_unrelated_event_topics()</p>
+                        <p><span class="pass">[PASS]</span> test_fuzz_risk_ratio_evaluation(uint256,uint256) (runs: 256)</p>
+                        <p>Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 7.11ms</p>
+                        <p class="cmd" style="margin-top:8px;">$ uv run pytest -q</p>
+                        <p>6 passed in 0.03s</p>
                     </div>
                 </div>
                 <div class="card" style="display:flex;flex-direction:column;justify-content:space-between;height:640px;">
                     <div>
-                        <h3 style="color:#38bdf8;">📊 N=100 V-Model Statistical Profile</h3>
+                        <h3 style="color:#38bdf8;">Before deployment</h3>
                         <ul>
-                            <li><strong>Cohen's d Effect Size:</strong> 2.0437 (Threshold ≥ 0.80)</li>
-                            <li><strong>Wald SPRT Log-LR:</strong> +92.90 (<code>accept_h1</code>)</li>
-                            <li><strong>Verifier p50 Latency:</strong> 0.0010 ms deterministic</li>
-                            <li><strong>Contracts:</strong> Origin, Reactive Sentinel &amp; Destination Guard</li>
-                            <li><strong>GitHub Repository:</strong> <code>manderson240/reactive-omni-agent</code></li>
+                            <li><strong>Guard:</strong> add authorizedSenderOnly to executeDefensiveAction</li>
+                            <li><strong>Replay:</strong> send a nonce on the callback path</li>
+                            <li><strong>Test setter:</strong> remove setVmForTesting</li>
+                            <li><strong>Alerts:</strong> restrict who can call emitRiskAlert</li>
+                            <li><strong>Repository:</strong> <code>manderson240/reactive-omni-agent</code></li>
                         </ul>
                     </div>
                     <div class="card success" style="padding:18px;">
-                        <h4 style="color:#22c55e;font-size:20px;margin-bottom:6px;">One-Command Local Verification</h4>
+                        <h4 style="color:#22c55e;font-size:20px;margin-bottom:6px;">Run it locally</h4>
                         <div class="code-pill" style="font-size:15.5px;">forge test &amp;&amp; uv run pytest -q</div>
                     </div>
                 </div>
@@ -391,8 +385,8 @@ pre { padding:16px 22px; font-family:"JetBrains Mono","DejaVu Sans Mono",monospa
 <body>
   __BODY__
   <div class="footer">
-    <div class="footer-brand">Reactive Omni Sentinel • DoraHacks Reactive Omni Buildathon</div>
-    <div>IReactive Cross-Chain ReactVM + Deterministic Guard • N=100 Cohen's d = 2.0437 • github.com/manderson240/reactive-omni-agent</div>
+    <div class="footer-brand">Reactive Omni Sentinel: DoraHacks Reactive Omni Buildathon</div>
+    <div>github.com/manderson240/reactive-omni-agent</div>
   </div>
 </body></html>"""
 

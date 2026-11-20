@@ -1,201 +1,213 @@
-# Reactive Sentinel: Autonomous Cross-Chain Invariant Guardian
+# Reactive Sentinel
 
+A small cross-chain risk guard I built on Reactive Network for the [Reactive Omni Buildathon on DoraHacks](https://dorahacks.io/hackathon/reactive-omni-buildathon/detail) (Track 1 "Every Second Counts" and Track 3 "Reactive Meets AI").
 
+An origin contract emits a `CollateralRatioAlert` event. A reactive contract subscribes to that event, checks `currentRatio < minRatio`, and if the vault is under its threshold it emits a Reactive `Callback` that calls a guard contract on the destination chain. A separate Python package runs the same threshold check off-chain, validates the action code, and signs an HMAC-SHA256 receipt for each event.
 
-**Submission for [Reactive Omni Buildathon on DoraHacks](https://dorahacks.io/hackathon)**  
-Target Tracks: **Track 1 ("Every Second Counts")** & **Track 3 ("Reactive Meets AI")**
+Everything here runs locally: Foundry tests for the contracts and a Python demo CLI. No deployment is recorded in this repo yet (see [Limits](#limits)).
 
 ---
 
-## Quickstart (1 Command)
+## Quickstart
 
-### 1. Smart Contract Test Suite (Foundry)
 ```bash
+git clone --recurse-submodules https://github.com/manderson240/reactive-omni-agent.git
+cd reactive-omni-agent
+
+# Contracts (needs Foundry)
 forge test
-```
-*Output*: 7 tests passing in <10ms (including 256-run property-based fuzzing and nonce replay protection).
 
-### 2. Python AI Agent & Invariant Verifier
-```bash
-# Sync dependencies
+# Python package
 uv sync
-
-# Run the Sentinel demo
-uv run sentinel
-
-# Run unit tests
 uv run pytest
+uv run sentinel
 ```
-*Output*: 6 unit tests passing in 0.03s.
+
+### Test output from my run
+
+```text
+$ forge test
+Ran 7 tests for test/ReactiveRiskSentinel.t.sol:ReactiveRiskSentinelTest
+[PASS] test_destination_guard_executes_callback_from_authorized_rvm() (gas: 61611)
+[PASS] test_destination_guard_rejects_unauthorized_rvm() (gas: 37884)
+[PASS] test_destination_guard_replay_protection_blocks_duplicate_nonce() (gas: 126693)
+[PASS] test_fuzz_risk_ratio_evaluation(uint256,uint256) (runs: 256, μ: 82035, ~: 72140)
+[PASS] test_react_ignores_safe_ratio() (gas: 75894)
+[PASS] test_react_ignores_unrelated_event_topics() (gas: 47633)
+[PASS] test_react_triggers_callback_when_ratio_under_threshold() (gas: 118765)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 7.11ms (5.79ms CPU time)
+
+$ uv run pytest -q
+......                                                                   [100%]
+6 passed in 0.03s
+```
+
+One of the seven Foundry tests is a fuzz test (256 runs). Timings are from my machine.
+
+### Demo output (`uv run sentinel`, chain ID variables unset)
+
+```text
+====================================================================
+  REACTIVE SENTINEL (Reactive Omni Network)
+  DoraHacks Buildathon: Autonomous Cross-Chain Invariant Guardian
+====================================================================
+
+[1] Initialized Reactive Sentinel Agent: 'sentinel-node-01'
+    - Origin Network:      Chain ID ${ORIGIN_CHAIN_ID}
+    - Reactive Network:    Chain ID ${REACTIVE_CHAIN_ID}
+    - Destination Network: Chain ID ${DESTINATION_CHAIN_ID}
+
+[2] Ingesting Risk Event: 'evt-vault-101-margin-call'
+    - Vault ID: 101 | Collateral Ratio: 110% | Min Ratio: 125%
+    - Invariant Status: DEFICIT DETECTED (Ratio < Threshold)
+    [OK] Invariant Check:   PASSED (valid event structure in 0.00ms)
+    [OK] Action Triggered:  CALLBACK REQUIRED -> executeDefensiveAction(vault=101, action=1)
+    [OK] Attestation Sig:   8a5fc17b503d75aba640e7f0...
+    [OK] Reactive Status:   EXECUTED ON LASNA
+
+[3] Ingesting Normal Event: 'evt-vault-102-healthy'
+    - Vault ID: 102 | Collateral Ratio: 155% | Min Ratio: 125%
+    - Invariant Status: HEALTHY (Ratio >= Threshold)
+    [OK] Invariant Check:   PASSED (valid event structure in 0.00ms)
+    [OK] Action Triggered:  NO CALLBACK (compute and gas conserved)
+    [OK] Attestation Sig:   892d0df1d7a4df9c07afb507...
+    [OK] Reactive Status:   PASSED (IDLE)
+
+====================================================================
+  SENTINEL COMPLETE: ALL INVARIANTS VERIFIED in 0.08ms
+  Status: READY FOR REACTIVE LASNA TESTNET
+====================================================================
+```
+
+The signatures change on every run because the receipt includes a nanosecond timestamp. The lines "EXECUTED ON LASNA" and "READY FOR REACTIVE LASNA TESTNET" are fixed strings in [`cli.py`](src/reactive_sentinel/cli.py). The demo does not connect to any network; it only runs the Python check and signer on two hardcoded events.
 
 ---
 
-## Architecture & End-to-End Flow
+## How it works
+
+### Contracts
+
+1. [`src/OriginRiskEmitter.sol`](src/OriginRiskEmitter.sol): `emitRiskAlert(vaultId, owner, currentRatio, minRatio, recommendedAction)` emits `CollateralRatioAlert`. `vaultId` and `owner` are indexed; the ratios (basis points) and action code go in the data field. It does not hold a vault; it is a stand-in that lets me emit test alerts.
+2. [`src/ReactiveRiskSentinel.sol`](src/ReactiveRiskSentinel.sol): extends `AbstractReactive` from `reactive-lib`. The constructor calls `service.subscribe(originChainId, originContract, ALERT_TOPIC_0, ...)` when it is not running inside a ReactVM. `react(LogRecord)` (marked `vmOnly`) ignores any other `topic_0`, reads `vaultId` from `topic_1` and `owner` from `topic_2`, decodes `(currentRatio, minRatio, recommendedAction)` from `log.data`, and when `currentRatio < minRatio` emits `Callback(destinationChainId, destinationContract, 250000, payload)`. The payload calls `executeDefensiveAction(address,uint256,address,uint256)` with `address(0)` in the first slot, which the Reactive relayer replaces with the RVM ID. It counts `alertsProcessed` and `callbacksTriggered`.
+3. [`src/DestinationLiquidatorGuard.sol`](src/DestinationLiquidatorGuard.sol): extends `AbstractCallback`. `executeDefensiveAction` is guarded by `rvmIdOnly(_rvmId)`, increments `totalRebalances` and emits `RebalanceExecuted`. `executeDefensiveActionWithNonce` does the same and also rejects a repeated `(rvmId, vaultId, owner, actionCode, nonce)` hash. Neither function moves funds.
+
+Deployment scripts are in [`script/`](script): `DeployOriginAndDestination.s.sol`, `DeployReactiveSentinel.s.sol` (sends 0.05 ether to the reactive contract for subscription costs) and `TriggerRiskAlert.s.sol`.
+
+### Python package
+
+All in [`src/reactive_sentinel/`](src/reactive_sentinel):
+
+1. [`verifier.py`](src/reactive_sentinel/verifier.py): `verify_risk_event(vault_id, current_ratio, min_ratio, action_code)` rejects non-positive IDs and ratios and any action code outside `VALID_ACTION_CODES = {1, 2, 3}`. If the input is valid it sets `requires_callback = current_ratio < min_ratio`, the same rule the reactive contract uses.
+2. [`attestation.py`](src/reactive_sentinel/attestation.py): `ReactiveAttestationSigner.sign` computes HMAC-SHA256 over `event_id:signer_id:origin_chain_id:destination_chain_id:executed:timestamp_ns`. `verify` recomputes it and compares with `hmac.compare_digest`.
+3. [`agent.py`](src/reactive_sentinel/agent.py): `ReactiveSentinelAgent.process_event` runs the verifier, then signs a receipt with `executed = requires_callback`.
+4. [`cli.py`](src/reactive_sentinel/cli.py): the `sentinel` command. It runs two hardcoded events (one under threshold, one healthy) and prints the result.
+
+There is no model call anywhere in the package. The "AI" part of this project is limited to a deterministic checker that an agent could call; I did not wire in an LLM.
+
+### Flow
 
 ```mermaid
 flowchart TD
-    subgraph OriginNetwork["Origin Chain (Base Sepolia / L2)"]
-        DeFiVault["DeFi Lending Protocol / Liquidity Pool"]
-        RiskEmitter["OriginRiskEmitter.sol<br/><i>Emits RiskAlertEmitted Event</i>"]
-        CollateralState["Vault Collateral Ratio & Health Factor"]
+    subgraph Origin["Origin chain"]
+        Emit["OriginRiskEmitter.emitRiskAlert()"]
     end
 
-    subgraph ReactiveNetwork["Reactive Network (Lasna / Kopli Execution Layer)"]
-        KopliVM["Reactive Virtual Machine (RVM)"]
-        RiskSentinel["ReactiveRiskSentinel.sol<br/><i>Implements IReactive.react()</i>"]
-        EventSubscription["Native Event Subscription (IoC Inversion of Control)"]
-        InvariantEngine["Threshold Invariant Evaluator (LTV > 8500 bps)"]
+    subgraph Reactive["Reactive Network"]
+        Sub["service.subscribe(ALERT_TOPIC_0)"]
+        React["ReactiveRiskSentinel.react(LogRecord)"]
+        Check["currentRatio < minRatio?"]
     end
 
-    subgraph DestinationNetwork["Destination Chain (Rollup / Liquidator Engine)"]
-        DestinationGuard["DestinationLiquidatorGuard.sol<br/><i>Implements AbstractCallback</i>"]
-        AuthFilter["rvmIdOnly / Authenticated Origin Filter"]
-        LiquidationVault["Defensive Rebalancing & Liquidation Vault"]
+    subgraph Dest["Destination chain"]
+        Guard["DestinationLiquidatorGuard.executeDefensiveAction()"]
     end
 
-    subgraph LocalAI["Edge Guardian (AMD Strix Halo NPU)"]
-        FastFlowLM["Local FastFlowLM / qwen3.5-4b-FLM"]
-        ASTGuard["Zero-Token Telemetry AST Verifier"]
+    subgraph Py["Python (local only)"]
+        Verify["verify_risk_event()"]
+        Sign["ReactiveAttestationSigner.sign()"]
     end
 
-    CollateralState -->|"Ratio Drops Below Threshold"| RiskEmitter
-    RiskEmitter -->|"1. Emits Log: RiskAlertEmitted"| EventSubscription
-    
-    EventSubscription --> KopliVM
-    KopliVM --> RiskSentinel
-    RiskSentinel --> InvariantEngine
+    Emit -->|"CollateralRatioAlert"| Sub
+    Sub --> React --> Check
+    Check -->|"yes: emit Callback"| Guard
+    Check -->|"no"| Done["no callback"]
+    Guard -->|"emit RebalanceExecuted"| Out["totalRebalances++"]
 
-    InvariantEngine -->|"2. Condition Met: Dispatch Cross-Chain Callback"| DestinationGuard
-    
-    DestinationGuard --> AuthFilter
-    AuthFilter -->|"Authorized Reactive VM Origin"| LiquidationVault
-    LiquidationVault -->|"3. Execute Automated Rebalance / Liquidation"| DestinationNetwork
-
-    EventSubscription -.->|"Stream Telemetry"| FastFlowLM
-    FastFlowLM --> ASTGuard
-
-    classDef origin fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4;
-    classDef reactive fill:#181825,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4;
-    classDef destination fill:#313244,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4;
-    classDef edge fill:#313244,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4;
-
-    class OriginNetwork,DeFiVault,RiskEmitter,CollateralState origin;
-    class ReactiveNetwork,KopliVM,RiskSentinel,EventSubscription,InvariantEngine reactive;
-    class DestinationNetwork,DestinationGuard,AuthFilter,LiquidationVault destination;
-    class LocalAI,FastFlowLM,ASTGuard edge;
+    Verify --> Sign
 ```
 
-### Autonomous Reactive Mitigation Sequence
+### Sequence
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Borrower as Borrower / Market Volatility
-    participant Origin as OriginRiskEmitter.sol (Base Sepolia)
-    participant RVM as Reactive VM (Kopli / Lasna)
-    participant Sentinel as ReactiveRiskSentinel.sol
-    participant Dest as DestinationLiquidatorGuard.sol (Rollup)
-    actor Liquidator as Defensive Liquidation Engine
+    participant Origin as OriginRiskEmitter
+    participant RVM as ReactVM
+    participant Sentinel as ReactiveRiskSentinel
+    participant Dest as DestinationLiquidatorGuard
 
-    Borrower->>Origin: Market price shock drops collateral ratio
-    activate Origin
-    Origin->>Origin: Assert Collateral Ratio < 8500 bps
-    Origin-->>RVM: emit RiskAlertEmitted(user, debt, collateral, timestamp)
-    deactivate Origin
-
-    activate RVM
-    RVM->>Sentinel: react(chainId, emitter, topics, data)
-    deactivate RVM
-    activate Sentinel
-
-    Sentinel->>Sentinel: Decode event log & evaluate risk threshold
-    Sentinel->>Sentinel: Verify cross-chain nonce & payload integrity
-    Sentinel-->>Dest: emit Callback(destChainId, destGuard, gasLimit, payload)
-    deactivate Sentinel
-
-    activate Dest
-    Dest->>Dest: Authenticate sender via rvmIdOnly()
-    Dest->>Dest: Replay protection: assert nonce not seen
-    Dest->>Liquidator: executeDefensiveRebalance(user, debtToCover)
-    activate Liquidator
-    Liquidator-->>Dest: Rebalance completed in ~1s (0% MEV slippage)
-    deactivate Liquidator
-    Dest-->>Borrower: Position safeguarded against bad debt
-    deactivate Dest
-```
-
-### Cross-Chain Hysteresis State Machine
-
-```mermaid
-stateDiagram-v2
-    [*] --> Healthy_State: Collateral Ratio > Safe Threshold
-    Healthy_State --> Risk_Threshold_Exceeded: Market Shock (Ratio < 85%)
-    
-    Risk_Threshold_Exceeded --> Event_Emitted: OriginRiskEmitter emits alert
-    Event_Emitted --> Reactive_VM_Processing: Inversion of Control Ingestion (~1s)
-    
-    Reactive_VM_Processing --> Invariant_Verified: Debt & Collateral Validated
-    Invariant_Verified --> Callback_Dispatched: Cross-Chain Callback Emitted
-    
-    Callback_Dispatched --> Defensive_Rebalanced: Destination Liquidator Executes
-    Defensive_Rebalanced --> Hysteresis_Cooldown: Position Stabilized
-    
-    Hysteresis_Cooldown --> Healthy_State: Ratio Restored Above Safe Threshold
-    Hysteresis_Cooldown --> [*]
+    Origin->>RVM: emit CollateralRatioAlert(vaultId, owner, currentRatio, minRatio, action)
+    RVM->>Sentinel: react(LogRecord)
+    Sentinel->>Sentinel: check topic_0, decode data
+    alt currentRatio < minRatio
+        Sentinel-->>Dest: emit Callback(destChainId, guard, 250000, payload)
+        Dest->>Dest: rvmIdOnly(_rvmId)
+        Dest->>Dest: totalRebalances++, emit RebalanceExecuted
+    else ratio is healthy
+        Sentinel->>Sentinel: alertsProcessed++ only
+    end
 ```
 
 ---
 
-## What It Does
+## Configuration
 
-**Reactive Sentinel** is an autonomous cross-chain guardian built on **Reactive Omni (Lasna Testnet)** that monitors on-chain events across L2s (Base Sepolia, Unichain Sepolia), verifies invariant conditions, and executes autonomous defensive rebalancing callbacks within ~1 second.
+`.env` is gitignored. Copy [`.env.example`](.env.example) and fill it in.
 
-1. **Origin Detection (`OriginRiskEmitter.sol`)**:
-   DeFi vaults or liquidity pools emit risk telemetry (e.g. `CollateralRatioAlert`).
-2. **Autonomous Reactive Execution (`ReactiveRiskSentinel.sol`)**:
-   Deployed on **Reactive Network** (`${REACTIVE_CHAIN_ID}`). Implements `IReactive.react()`, decodes event logs, evaluates safety invariants, and emits cross-chain `Callback` transactions without human or off-chain relayer intervention.
-3. **Destination Mitigation (`DestinationLiquidatorGuard.sol`)**:
-   Deployed on Destination Chain (`${DESTINATION_CHAIN_ID}`). Authenticates the Reactive VM origin via `AbstractCallback.rvmIdOnly()` and executes automated defensive rebalancing.
-4. **Local AI Agent Guard (`reactive_sentinel`)**:
-   Monitors event streams using local AMD Strix Halo NPU (`FastFlowLM` / `qwen3.5-4b-FLM`), runs zero-token AST verification, and generates HMAC-SHA256 attestation receipts.
+Read by the Python package:
 
----
+| Variable | Used in | Default |
+|---|---|---|
+| `SENTINEL_AGENT_ID` | `agent.py`, `cli.py` | `reactive-sentinel-node-01` in `agent.py`, `sentinel-node-01` in `cli.py` |
+| `ORIGIN_CHAIN_ID` | `agent.py`, `cli.py` | `0` |
+| `DESTINATION_CHAIN_ID` | `agent.py`, `cli.py` | `0` |
+| `REACTIVE_CHAIN_ID` | `cli.py` (display only) | `0` |
 
-## Security & Dynamic Configuration
+Read by the Foundry scripts and `foundry.toml`:
 
-Per production security requirements, sensitive network identifiers, chain IDs, RPC endpoints, and private keys **must never be committed to Git**. Instead, store them securely in **Google Password Manager** and inject them at runtime:
-
-```bash
-# Copy template and configure with credentials from Google Password Manager
-cp .env.example .env
-source .env
-```
-
-| Variable | Description |
+| Variable | Used in |
 |---|---|
-| `PRIVATE_KEY` | Operator private key (stored in Password Manager) |
-| `ORIGIN_CHAIN_ID` | Origin chain identifier (e.g. Base Sepolia) |
-| `DESTINATION_CHAIN_ID` | Destination chain identifier |
-| `REACTIVE_CHAIN_ID` | Reactive network identifier (e.g. Reactive Lasna) |
-| `BASE_SEPOLIA_RPC_URL` | Origin RPC endpoint |
-| `REACTIVE_LASNA_RPC_URL` | Reactive network RPC endpoint |
+| `PRIVATE_KEY` | all three scripts |
+| `CALLBACK_RELAYER` | `DeployOriginAndDestination.s.sol` (default `address(0)`) |
+| `ORIGIN_CONTRACT`, `DESTINATION_CONTRACT`, `ORIGIN_CHAIN_ID`, `DESTINATION_CHAIN_ID` | `DeployReactiveSentinel.s.sol` |
+| `ORIGIN_CONTRACT`, `VAULT_ID`, `VAULT_OWNER`, `CURRENT_RATIO`, `MIN_RATIO`, `ACTION_CODE` | `TriggerRiskAlert.s.sol` |
+| `BASE_SEPOLIA_RPC_URL`, `REACTIVE_LASNA_RPC_URL` | `foundry.toml` RPC endpoints |
+
+`REACTIVE_CONTRACT` appears in `.env.example` but nothing reads it.
 
 ---
 
-## Architecture & Technical Verification
+## Limits
 
-```
-[Base Sepolia: OriginRiskEmitter]
-               │ Event Log (CollateralRatioAlert)
-               ▼
-[Reactive Lasna: ReactiveRiskSentinel]
-               │ Invariant check: currentRatio < minRatio
-               │ Emits Callback event
-               ▼
-[Base Sepolia: DestinationLiquidatorGuard]
-               │ Authenticated callback execution
-```
+I want to be clear about what this is and is not.
 
-- **Foundry Tests**: [`test/ReactiveRiskSentinel.t.sol`](test/ReactiveRiskSentinel.t.sol) (5/5 passing).
-- **Python Agent Tests**: [`tests/test_agent.py`](tests/test_agent.py) (5/5 passing).
-- **1-Command Demo**: `uv run sentinel` (<15ms).
+- **Not deployed.** There is no `broadcast/` directory and the contract addresses in `.env.example` are empty. Nothing in this repo shows the contracts running on Base Sepolia or Lasna. The Foundry tests call `react()` directly with a hand-built `LogRecord`; they do not go through a real subscription or relayer.
+- **The subscription branch is not tested.** In Foundry there is no code at the system contract address, so `detectVm()` sets `vm = true` and the constructor skips `service.subscribe(...)`.
+- **The destination guard does not check `msg.sender`.** `rvmIdOnly(_rvmId)` compares the `_rvmId` argument with the stored RVM ID; it does not check who is calling, and the functions do not use `authorizedSenderOnly`. I confirmed with a throwaway Foundry test that a random address can call `executeDefensiveAction` by passing the deployer address as `_rvmId`. `test_destination_guard_rejects_unauthorized_rvm` only shows that a wrong argument reverts. Before a real deployment the guard needs `authorizedSenderOnly` (or an explicit `msg.sender` check against the callback proxy).
+- **Replay protection is not on the live path.** Only `executeDefensiveActionWithNonce` stores processed action IDs. The reactive contract's payload calls `executeDefensiveAction`, which has no nonce.
+- **Anyone can raise an alert.** `emitRiskAlert` has no access control (the `guardian` field is set and never used), and the Solidity side never checks the action code. Only the Python verifier restricts it to {1, 2, 3}.
+- **`setVmForTesting` is in the production contract** and has no access control. It must be removed before deployment.
+- **No funds move.** "Defensive action" here means a counter and an event. There is no lending protocol, repayment or collateral transfer.
+- **The Python package is not connected to any chain.** It does not read events or send transactions. `web3` and `pydantic` are listed as dependencies but are not imported.
+- **Receipt signing is basic.** The HMAC key is a hardcoded default in `ReactiveAttestationSigner` and is not read from the environment. The receipt does not carry `signer_id`, and there is no epoch field despite the module docstring.
+
+---
+
+## Hackathon deliverables
+
+- Feedback report on building with Reactive Network: [`docs/reactive_omni_feedback_report.md`](docs/reactive_omni_feedback_report.md)
+- Demo video: [`docs/reactive_omni_pitch_demo.mp4`](docs/reactive_omni_pitch_demo.mp4), generated with `python3 scripts/generate_pitch_video.py`. The committed video was rendered from an earlier version of the scene text and still shows claims I have since removed from the script; it needs to be regenerated.
+
+## License
+
+MIT
